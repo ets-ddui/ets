@@ -12,7 +12,7 @@
 
 1. 功能插件，使用VC开发，实现了脚本引擎和进程管理模块，网络通信模块正在开发中。
 2. 脚本，目前支持JScript和Python，但对Python的支持还不完善，计划还要引入一个自定义类型，VBA理论上也支持，但未验证过。
-3. UI界面，使用Delphi实现，之前开放出来的[ets-ddui](https://github.com/ets-ddui/ets-ddui.git)，算是其中最重要的一个模块。
+3. UI界面，使用Delphi实现，之前开放出来的[ets-ddui](https://gitee.com/ets-ddui/ets-ddui.git)，算是其中最重要的一个模块。
 
 UI和功能插件，都是以DLL的形式对外提供服务，供主程序使用。
 UI导出`GetFrame`函数，功能插件导出`GetModule`函数。
@@ -63,7 +63,7 @@ UI导出`GetFrame`函数，功能插件导出`GetModule`函数。
   构建脚本会调用MSBuild构建程序，但因为Delphi不是微软亲生的，与MSBuild配合不是太好。
   构建前，脚本会先读取注册表“HKLM\SOFTWARE\Borland\BDS\5.0”，查找Delphi的安装目录，VC没有此问题。
 * **Git**
-  本项目中使用了boost这类项目，由于文件较大，因此，被单独存放到[build-tools](https://github.com/ets-ddui/build-tools.git)库中，编译时，会调用Git下载相关代码。
+  本项目中使用了boost这类项目，由于文件较大，因此，被单独存放到[build-tools](https://gitee.com/ets-ddui/build-tools.git)库中，编译时，会调用Git下载相关代码。
   建议将Git的安装目录添加到环境变量`PATH`中。
 
 ### 编译
