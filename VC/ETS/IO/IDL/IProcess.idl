@@ -1,0 +1,25 @@
+import "oaidl.idl";
+import "ocidl.idl";
+
+[
+    local,
+    uuid(029CC3F6-1C31-4B4F-9566-580F11DCA424),
+    pointer_default(unique)
+]
+interface IProcess : IUnknown
+{
+    [] HRESULT Start([in] BSTR p_sExecute, [in] BSTR p_sWorkDir, [in] BSTR p_sEnvironment, [in] IDispatch* p_itfCallback);
+    [] HRESULT Write([in] BSTR p_sData);
+};
+
+[
+    uuid(9C8D2B38-CBBE-475D-B929-6DE82BCD33F5),
+    version(0.1)
+]
+library IOLib
+{
+    importlib("stdole32.tlb");
+    importlib("stdole2.tlb");
+
+    interface IProcess;
+};

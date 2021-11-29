@@ -1,0 +1,243 @@
+﻿// Created by Microsoft (R) C/C++ Compiler Version 10.00.30319.01 (c614c3e2).
+//
+// e:\tool\temp\script\msscript.tlh
+//
+// C++ source equivalent of Win32 type library E:/Tool/ETS/Common/msscript.ocx
+// compiler-generated file created 04/17/20 at 13:19:53 - DO NOT EDIT!
+
+#pragma once
+#pragma pack(push, 8)
+
+#include <comdef.h>
+
+//
+// Forward references and typedefs
+//
+
+struct __declspec(uuid("0e59f1d2-1fbe-11d0-8ff2-00a0d10038bc"))
+/* LIBID */ __MSScriptControl;
+enum ScriptControlStates;
+struct __declspec(uuid("70841c73-067d-11d0-95d8-00a02463ab28"))
+/* dual interface */ IScriptProcedure;
+struct __declspec(uuid("70841c71-067d-11d0-95d8-00a02463ab28"))
+/* dual interface */ IScriptProcedureCollection;
+struct __declspec(uuid("70841c70-067d-11d0-95d8-00a02463ab28"))
+/* dual interface */ IScriptModule;
+struct __declspec(uuid("70841c6f-067d-11d0-95d8-00a02463ab28"))
+/* dual interface */ IScriptModuleCollection;
+struct __declspec(uuid("70841c78-067d-11d0-95d8-00a02463ab28"))
+/* dual interface */ IScriptError;
+struct __declspec(uuid("0e59f1d3-1fbe-11d0-8ff2-00a0d10038bc"))
+/* dual interface */ IScriptControl;
+struct __declspec(uuid("8b167d60-8605-11d0-abcb-00a0c90fffc0"))
+/* dispinterface */ DScriptControlSource;
+struct /* coclass */ Procedure;
+struct /* coclass */ Procedures;
+struct /* coclass */ Module;
+struct /* coclass */ Modules;
+struct /* coclass */ Error;
+struct /* coclass */ ScriptControl;
+
+//
+// Type library items
+//
+    const LPSTR GlobalModule = (char*) "Global";
+    const long NoTimeout = -1;
+
+enum ScriptControlStates
+{
+    Initialized = 0,
+    Connected = 1
+};
+
+struct __declspec(uuid("70841c73-067d-11d0-95d8-00a02463ab28"))
+IScriptProcedure : IDispatch
+{
+    //
+    // Raw methods provided by interface
+    //
+
+      virtual HRESULT __stdcall get_Name (
+        /*[out,retval]*/ BSTR * pbstrName ) = 0;
+      virtual HRESULT __stdcall get_NumArgs (
+        /*[out,retval]*/ long * pcArgs ) = 0;
+      virtual HRESULT __stdcall get_HasReturnValue (
+        /*[out,retval]*/ VARIANT_BOOL * pfHasReturnValue ) = 0;
+};
+
+struct __declspec(uuid("70841c71-067d-11d0-95d8-00a02463ab28"))
+IScriptProcedureCollection : IDispatch
+{
+    //
+    // Raw methods provided by interface
+    //
+
+      virtual HRESULT __stdcall get__NewEnum (
+        /*[out,retval]*/ IUnknown * * ppenumProcedures ) = 0;
+      virtual HRESULT __stdcall get_Item (
+        /*[in]*/ VARIANT Index,
+        /*[out,retval]*/ struct IScriptProcedure * * ppdispProcedure ) = 0;
+      virtual HRESULT __stdcall get_Count (
+        /*[out,retval]*/ long * plCount ) = 0;
+};
+
+struct __declspec(uuid("70841c70-067d-11d0-95d8-00a02463ab28"))
+IScriptModule : IDispatch
+{
+    //
+    // Raw methods provided by interface
+    //
+
+      virtual HRESULT __stdcall get_Name (
+        /*[out,retval]*/ BSTR * pbstrName ) = 0;
+      virtual HRESULT __stdcall get_CodeObject (
+        /*[out,retval]*/ IDispatch * * ppdispObject ) = 0;
+      virtual HRESULT __stdcall get_Procedures (
+        /*[out,retval]*/ struct IScriptProcedureCollection * * ppdispProcedures ) = 0;
+      virtual HRESULT __stdcall AddCode (
+        /*[in]*/ BSTR Code ) = 0;
+      virtual HRESULT __stdcall Eval (
+        /*[in]*/ BSTR Expression,
+        /*[out,retval]*/ VARIANT * pvarResult ) = 0;
+      virtual HRESULT __stdcall ExecuteStatement (
+        /*[in]*/ BSTR Statement ) = 0;
+      virtual HRESULT __stdcall Run (
+        /*[in]*/ BSTR ProcedureName,
+        /*[in]*/ SAFEARRAY * * Parameters,
+        /*[out,retval]*/ VARIANT * pvarResult ) = 0;
+};
+
+struct __declspec(uuid("70841c6f-067d-11d0-95d8-00a02463ab28"))
+IScriptModuleCollection : IDispatch
+{
+    //
+    // Raw methods provided by interface
+    //
+
+      virtual HRESULT __stdcall get__NewEnum (
+        /*[out,retval]*/ IUnknown * * ppenumContexts ) = 0;
+      virtual HRESULT __stdcall get_Item (
+        /*[in]*/ VARIANT Index,
+        /*[out,retval]*/ struct IScriptModule * * ppmod ) = 0;
+      virtual HRESULT __stdcall get_Count (
+        /*[out,retval]*/ long * plCount ) = 0;
+      virtual HRESULT __stdcall Add (
+        /*[in]*/ BSTR Name,
+        /*[in]*/ VARIANT * Object,
+        /*[out,retval]*/ struct IScriptModule * * ppmod ) = 0;
+};
+
+struct __declspec(uuid("70841c78-067d-11d0-95d8-00a02463ab28"))
+IScriptError : IDispatch
+{
+    //
+    // Raw methods provided by interface
+    //
+
+      virtual HRESULT __stdcall get_Number (
+        /*[out,retval]*/ long * plNumber ) = 0;
+      virtual HRESULT __stdcall get_Source (
+        /*[out,retval]*/ BSTR * pbstrSource ) = 0;
+      virtual HRESULT __stdcall get_Description (
+        /*[out,retval]*/ BSTR * pbstrDescription ) = 0;
+      virtual HRESULT __stdcall get_HelpFile (
+        /*[out,retval]*/ BSTR * pbstrHelpFile ) = 0;
+      virtual HRESULT __stdcall get_HelpContext (
+        /*[out,retval]*/ long * plHelpContext ) = 0;
+      virtual HRESULT __stdcall get_Text (
+        /*[out,retval]*/ BSTR * pbstrText ) = 0;
+      virtual HRESULT __stdcall get_Line (
+        /*[out,retval]*/ long * plLine ) = 0;
+      virtual HRESULT __stdcall get_Column (
+        /*[out,retval]*/ long * plColumn ) = 0;
+      virtual HRESULT __stdcall Clear ( ) = 0;
+};
+
+struct __declspec(uuid("0e59f1d3-1fbe-11d0-8ff2-00a0d10038bc"))
+IScriptControl : IDispatch
+{
+    //
+    // Raw methods provided by interface
+    //
+
+      virtual HRESULT __stdcall get_Language (
+        /*[out,retval]*/ BSTR * pbstrLanguage ) = 0;
+      virtual HRESULT __stdcall put_Language (
+        /*[in]*/ BSTR pbstrLanguage ) = 0;
+      virtual HRESULT __stdcall get_State (
+        /*[out,retval]*/ enum ScriptControlStates * pssState ) = 0;
+      virtual HRESULT __stdcall put_State (
+        /*[in]*/ enum ScriptControlStates pssState ) = 0;
+      virtual HRESULT __stdcall put_SitehWnd (
+        /*[in]*/ long phwnd ) = 0;
+      virtual HRESULT __stdcall get_SitehWnd (
+        /*[out,retval]*/ long * phwnd ) = 0;
+      virtual HRESULT __stdcall get_Timeout (
+        /*[out,retval]*/ long * plMilleseconds ) = 0;
+      virtual HRESULT __stdcall put_Timeout (
+        /*[in]*/ long plMilleseconds ) = 0;
+      virtual HRESULT __stdcall get_AllowUI (
+        /*[out,retval]*/ VARIANT_BOOL * pfAllowUI ) = 0;
+      virtual HRESULT __stdcall put_AllowUI (
+        /*[in]*/ VARIANT_BOOL pfAllowUI ) = 0;
+      virtual HRESULT __stdcall get_UseSafeSubset (
+        /*[out,retval]*/ VARIANT_BOOL * pfUseSafeSubset ) = 0;
+      virtual HRESULT __stdcall put_UseSafeSubset (
+        /*[in]*/ VARIANT_BOOL pfUseSafeSubset ) = 0;
+      virtual HRESULT __stdcall get_Modules (
+        /*[out,retval]*/ struct IScriptModuleCollection * * ppmods ) = 0;
+      virtual HRESULT __stdcall get_Error (
+        /*[out,retval]*/ struct IScriptError * * ppse ) = 0;
+      virtual HRESULT __stdcall get_CodeObject (
+        /*[out,retval]*/ IDispatch * * ppdispObject ) = 0;
+      virtual HRESULT __stdcall get_Procedures (
+        /*[out,retval]*/ struct IScriptProcedureCollection * * ppdispProcedures ) = 0;
+      virtual HRESULT __stdcall _AboutBox ( ) = 0;
+      virtual HRESULT __stdcall AddObject (
+        /*[in]*/ BSTR Name,
+        /*[in]*/ IDispatch * Object,
+        /*[in]*/ VARIANT_BOOL AddMembers ) = 0;
+      virtual HRESULT __stdcall Reset ( ) = 0;
+      virtual HRESULT __stdcall AddCode (
+        /*[in]*/ BSTR Code ) = 0;
+      virtual HRESULT __stdcall Eval (
+        /*[in]*/ BSTR Expression,
+        /*[out,retval]*/ VARIANT * pvarResult ) = 0;
+      virtual HRESULT __stdcall ExecuteStatement (
+        /*[in]*/ BSTR Statement ) = 0;
+      virtual HRESULT __stdcall Run (
+        /*[in]*/ BSTR ProcedureName,
+        /*[in]*/ SAFEARRAY * * Parameters,
+        /*[out,retval]*/ VARIANT * pvarResult ) = 0;
+};
+
+struct __declspec(uuid("8b167d60-8605-11d0-abcb-00a0c90fffc0"))
+DScriptControlSource : IDispatch
+{};
+
+struct __declspec(uuid("0e59f1da-1fbe-11d0-8ff2-00a0d10038bc"))
+Procedure;
+    // [ default ] interface IScriptProcedure
+
+struct __declspec(uuid("0e59f1db-1fbe-11d0-8ff2-00a0d10038bc"))
+Procedures;
+    // [ default ] interface IScriptProcedureCollection
+
+struct __declspec(uuid("0e59f1dc-1fbe-11d0-8ff2-00a0d10038bc"))
+Module;
+    // [ default ] interface IScriptModule
+
+struct __declspec(uuid("0e59f1dd-1fbe-11d0-8ff2-00a0d10038bc"))
+Modules;
+    // [ default ] interface IScriptModuleCollection
+
+struct __declspec(uuid("0e59f1de-1fbe-11d0-8ff2-00a0d10038bc"))
+Error;
+    // [ default ] interface IScriptError
+
+struct __declspec(uuid("0e59f1d5-1fbe-11d0-8ff2-00a0d10038bc"))
+ScriptControl;
+    // [ default ] interface IScriptControl
+    // [ default, source ] dispinterface DScriptControlSource
+
+#pragma pack(pop)

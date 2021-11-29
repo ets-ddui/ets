@@ -1,0 +1,7 @@
+Template_Frame          RCDATA          "Template\\UTemplateFrame.pas"
+Template_Project        RCDATA          "Template\\UTemplateProject.dpr"
+Entry_Frame             RCDATA          "Template\\UEntryFrame.pas"
+Entry_Module            RCDATA          "Template\\UEntryModule.pas"
+
+Frame                   ICON            "Icon\Frame.ico"
+Project                 ICON            "Icon\Project.ico"

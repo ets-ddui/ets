@@ -1,0 +1,78 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="IDL">
+      <UniqueIdentifier>{a9992f5a-93e3-4d74-9433-0eb4a2bbffe1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Src">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Src\Handler">
+      <UniqueIdentifier>{6ead9c46-3362-41ad-91d2-91666cac298c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Module.cpp">
+      <Filter>Src</Filter>
+    </ClCompile>
+    <ClInclude Include="TcpServer.h">
+      <Filter>Src</Filter>
+    </ClInclude>
+    <ClInclude Include="TcpClient.h">
+      <Filter>Src</Filter>
+    </ClInclude>
+    <ClInclude Include="Process.h">
+      <Filter>Src</Filter>
+    </ClInclude>
+    <ClInclude Include="Buffer.h">
+      <Filter>Src</Filter>
+    </ClInclude>
+    <ClInclude Include="Handler\HttpHandler.h">
+      <Filter>Src\Handler</Filter>
+    </ClInclude>
+    <ClInclude Include="Handler\JsHandler.h">
+      <Filter>Src\Handler</Filter>
+    </ClInclude>
+    <ClInclude Include="Handler\LineHandler.h">
+      <Filter>Src\Handler</Filter>
+    </ClInclude>
+    <ClInclude Include="Handler\TcpHandler.h">
+      <Filter>Src\Handler</Filter>
+    </ClInclude>
+    <ClInclude Include="Handler\Handler.h">
+      <Filter>Src\Handler</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="IO.rc">
+      <Filter>Resource</Filter>
+    </ResourceCompile>
+    <ClInclude Include="resource.h">
+      <Filter>Resource</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Midl Include="IDL\IModule.idl">
+      <Filter>IDL</Filter>
+    </Midl>
+    <Midl Include="IDL\ITcpServer.idl">
+      <Filter>IDL</Filter>
+    </Midl>
+    <Midl Include="IDL\ITcpClient.idl">
+      <Filter>IDL</Filter>
+    </Midl>
+    <Midl Include="IDL\IProcess.idl">
+      <Filter>IDL</Filter>
+    </Midl>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Handler\PsHandler.h">
+      <Filter>Src\Handler</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

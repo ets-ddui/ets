@@ -1,0 +1,4 @@
+LIBRARY      "IO.DLL"
+
+EXPORTS
+    GetModule     @1 PRIVATE

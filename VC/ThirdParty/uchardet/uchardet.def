@@ -1,0 +1,4 @@
+LIBRARY      "uchardet.DLL"
+
+EXPORTS
+    DetectCodePage      @1 PRIVATE

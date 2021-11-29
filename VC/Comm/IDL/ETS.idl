@@ -1,0 +1,50 @@
+import "oaidl.idl";
+import "ocidl.idl";
+
+enum EEncodingType {etBinary, etGbk, etUtf8, etUnicode};
+
+[
+    local,
+    object,
+    uuid(A186C64B-DA6F-438E-A4B8-A485F7C7573C),
+    helpstring("IMemoryBlock Interface"),
+    pointer_default(unique)
+]
+interface IMemoryBlock : IUnknown
+{
+    [] HRESULT GetEncoding([out,retval] BYTE* p_iResult);
+    [] HRESULT SetEncoding([in] BYTE p_iValue);
+    [] HRESULT GetSize([out,retval] ULONG* p_iResult);
+    [] HRESULT SetSize([in] ULONG p_iValue);
+    [] HRESULT Read([in] ULONG p_iPosition, [in] BYTE* p_pValue, [in,out] ULONG* p_piLength);
+    [] HRESULT Write([in] ULONG p_iPosition, [in] BYTE* p_pValue, [in] ULONG p_iLength);
+};
+
+[
+    local,
+    object,
+    uuid(E43AC553-3020-4A0A-91D4-7CA936DE27E4),
+    helpstring("IManager Interface"),
+    pointer_default(unique)
+]
+interface IManager : IUnknown
+{
+    [] HRESULT GetPlugins([in] BSTR p_sFileName, [out,retval] IDispatch** p_itfResult);
+    [] HRESULT GetService([in] BSTR p_sServiceName, [out,retval] VARIANT* p_vResult);
+    [] HRESULT Lock();
+    [] HRESULT UnLock();
+};
+
+[
+    uuid(45545300-0000-0000-0000-000000000000),
+    version(0.1),
+    helpstring("ETS 0.1 Type Library")
+]
+library ETSLib
+{
+    importlib("stdole32.tlb");
+    importlib("stdole2.tlb");
+
+    interface IMemoryBlock;
+    interface IManager;
+};

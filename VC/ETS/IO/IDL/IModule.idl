@@ -1,0 +1,27 @@
+import "oaidl.idl";
+import "ocidl.idl";
+
+[
+    local,
+    uuid(45FB8CEF-AEBA-46A9-86DC-DE4D4F729A8A),
+    pointer_default(unique)
+]
+interface IModule : IUnknown
+{
+    HRESULT Run([in] VARIANT_BOOL p_bDealMessageLoop);
+    HRESULT GetTcpServer([in] BSTR p_sHost, [in] BSTR p_sService, [out,retval] IDispatch** p_itfResult);
+    HRESULT GetTcpClient([in] BSTR p_sHost, [in] BSTR p_sService, [out,retval] IDispatch** p_itfResult);
+    HRESULT GetProcess([out,retval] IDispatch** p_itfResult);
+};
+
+[
+    uuid(9C8D2B38-CBBE-475D-B929-6DE82BCD33F5),
+    version(0.1)
+]
+library IOLib
+{
+    importlib("stdole32.tlb");
+    importlib("stdole2.tlb");
+
+    interface IModule;
+};

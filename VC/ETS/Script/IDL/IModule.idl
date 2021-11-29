@@ -1,0 +1,26 @@
+import "oaidl.idl";
+import "ocidl.idl";
+
+[
+    local,
+    uuid(D22EAF7F-4B9C-46D8-9720-4B0909119131),
+    pointer_default(unique)
+]
+interface IModule : IUnknown
+{
+    HRESULT GetPython([out,retval] IDispatch** p_itfResult);
+    HRESULT GetV8([out,retval] IDispatch** p_itfResult);
+    HRESULT GetJScript([out,retval] IDispatch** p_itfResult);
+};
+
+[
+    uuid(78660AA6-CEDF-4420-A494-F166FD56228D),
+    version(0.1)
+]
+library ScriptLib
+{
+    importlib("stdole32.tlb");
+    importlib("stdole2.tlb");
+
+    interface IModule;
+};

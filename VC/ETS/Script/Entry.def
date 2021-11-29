@@ -1,0 +1,4 @@
+LIBRARY      "Script.DLL"
+
+EXPORTS
+    GetModule     @1 PRIVATE

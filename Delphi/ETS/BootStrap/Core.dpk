@@ -1,0 +1,56 @@
+package Core;
+
+{$R *.res}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$IMPLICITBUILD ON}
+
+requires
+  rtl,
+  vcl,
+  DDUI,
+  dsnap,
+  JCL,
+  vcldb;
+
+contains
+  ULibraryManager in 'Module\ULibraryManager.pas',
+  UManager in 'Module\UManager.pas',
+  UTrayIcon in 'Module\UTrayIcon.pas',
+  UChild in 'MainForm\UChild.pas',
+  UForm in 'MainForm\UForm.pas',
+  UScript in 'MainForm\UScript.pas',
+  ULogManager in 'MainForm\ULogManager.pas',
+  UMessageConst in 'MainForm\UMessageConst.pas',
+  USettingManager in 'MainForm\USettingManager.pas',
+  UAppInit in 'Module\UAppInit.pas',
+  UBindEvent in 'Module\UBindEvent.pas',
+  UDispatchWrapper in 'Module\UDispatchWrapper.pas',
+  UFrameBase in 'Module\UFrameBase.pas',
+  UInterface in 'Module\UInterface.pas',
+  UMemoryBlock in 'Module\UMemoryBlock.pas',
+  UModuleBase in 'Module\UModuleBase.pas',
+  UETSRegComponents in 'UI\UETSRegComponents.pas',
+  UETSTreeGrid in 'UI\Grid\UETSTreeGrid.pas',
+  UService in 'UService.pas';
+
+end.

@@ -1,0 +1,116 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="UserMacros">
+    <BinDir></BinDir>
+    <BoostDir></BoostDir>
+  </PropertyGroup>
+  <!-- 查找源码根目录 -->
+  <Choose>
+    <When Condition="exists('$(ProjectDir)..\ETS\')">
+      <PropertyGroup>
+        <SrcDir>$(ProjectDir)..\</SrcDir>
+      </PropertyGroup>
+    </When>
+    <When Condition="exists('$(ProjectDir)..\..\ETS\')">
+      <PropertyGroup>
+        <SrcDir>$(ProjectDir)..\..\</SrcDir>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup>
+        <SrcDir>$(ProjectDir)..\..\..\</SrcDir>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
+  <PropertyGroup>
+    <SubDir Condition="'$(SubDir)' != '' and !HasTrailingSlash('$(SubDir)')">$(SubDir)\</SubDir>
+    <BinDirWithSlash>$(BinDir)</BinDirWithSlash>
+    <BinDirWithSlash Condition="'$(BinDir)' != '' and !HasTrailingSlash('$(BinDir)')">$(BinDir)\</BinDirWithSlash>
+    <BoostDirWithSlash>$(BoostDir)</BoostDirWithSlash>
+    <BoostDirWithSlash Condition="'$(BoostDir)' != '' and !HasTrailingSlash('$(BoostDir)')">$(BoostDir)\</BoostDirWithSlash>
+  </PropertyGroup>
+  <!-- 查找boost的lib目录 -->
+  <Choose>
+    <When Condition="exists('$(BoostDirWithSlash)lib\')">
+      <PropertyGroup>
+        <BoostLibDir>$(BoostDirWithSlash)lib\</BoostLibDir>
+      </PropertyGroup>
+    </When>
+    <When Condition="exists('$(BoostDirWithSlash)..\lib\')">
+      <PropertyGroup>
+        <BoostLibDir>$(BoostDirWithSlash)..\lib\</BoostLibDir>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup>
+        <BoostLibDir>$(SrcDir)lib\</BoostLibDir>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
+  <!-- 输出目录定义 -->
+  <Choose>
+    <When Condition="'$(Platform)'=='x64'">
+      <PropertyGroup>
+        <OutDir Condition="'$(BinDir)'==''">$(SrcDir)ETS64\Plugin.D\$(SubDir)</OutDir>
+        <OutDir Condition="'$(BinDir)'!=''">$(BinDirWithSlash)ETS64\Plugin.D\$(SubDir)</OutDir>
+        <IntDir Condition="'$(BinDir)'==''">$(SrcDir)temp64\$(SubDir)$(ProjectName)\</IntDir>
+        <IntDir Condition="'$(BinDir)'!=''">$(BinDirWithSlash)temp64\$(SubDir)$(ProjectName)\</IntDir>
+        <LocalDebuggerCommand Condition="'$(BinDir)'!=''">$(BinDirWithSlash)ETS64\ETS.exe</LocalDebuggerCommand>
+        <LocalDebuggerWorkingDirectory Condition="'$(BinDir)'!=''">$(BinDirWithSlash)ETS64\</LocalDebuggerWorkingDirectory>
+        <DebuggerFlavor Condition="'$(BinDir)'!=''">WindowsLocalDebugger</DebuggerFlavor>
+      </PropertyGroup>
+    </When>
+    <Otherwise>
+      <PropertyGroup>
+        <OutDir Condition="'$(BinDir)'==''">$(SrcDir)ETS\Plugin.D\$(SubDir)</OutDir>
+        <OutDir Condition="'$(BinDir)'!=''">$(BinDirWithSlash)ETS\Dll\Plugin.D\$(SubDir)</OutDir>
+        <IntDir Condition="'$(BinDir)'==''">$(SrcDir)temp\$(SubDir)$(ProjectName)\</IntDir>
+        <IntDir Condition="'$(BinDir)'!=''">$(BinDirWithSlash)temp\$(SubDir)$(ProjectName)\</IntDir>
+        <LocalDebuggerCommand Condition="'$(BinDir)'!=''">$(BinDirWithSlash)ETS\ETS.exe</LocalDebuggerCommand>
+        <LocalDebuggerWorkingDirectory Condition="'$(BinDir)'!=''">$(BinDirWithSlash)ETS\</LocalDebuggerWorkingDirectory>
+        <DebuggerFlavor Condition="'$(BinDir)'!=''">WindowsLocalDebugger</DebuggerFlavor>
+      </PropertyGroup>
+    </Otherwise>
+  </Choose>
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <Bscmake>
+      <OutputFile>$(IntDir)$(ProjectName).bsc</OutputFile>
+    </Bscmake>
+    <ClCompile>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <PreprocessorDefinitions>_ALLOW_ITERATOR_DEBUG_LEVEL_MISMATCH;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ExceptionHandling>Async</ExceptionHandling>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
+      <AdditionalIncludeDirectories>$(SrcDir)Comm\</AdditionalIncludeDirectories>
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <Link>
+      <ProgramDatabaseFile>$(IntDir)$(TargetName).pdb</ProgramDatabaseFile>
+      <ImportLibrary>$(IntDir)$(ProjectName).lib</ImportLibrary>
+      <OptimizeReferences>true</OptimizeReferences>
+      <ModuleDefinitionFile>Entry.def</ModuleDefinitionFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+    <ResourceCompile>
+      <ResourceOutputFileName>$(IntDir)%(Filename).res</ResourceOutputFileName>
+    </ResourceCompile>
+    <Midl>
+      <TypeLibraryName>$(ProjectDir)IDL/%(Filename).tlb</TypeLibraryName>
+      <HeaderFileName>$(ProjectDir)IDL/%(Filename).h</HeaderFileName>
+      <DllDataFileName>$(IntDir)%(Filename)_dlldata.c</DllDataFileName>
+      <InterfaceIdentifierFileName>$(IntDir)%(Filename)_i.c</InterfaceIdentifierFileName>
+      <ProxyFileName>$(IntDir)%(Filename)_p.c</ProxyFileName>
+    </Midl>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <BuildMacro Include="BinDir">
+      <Value>$(BinDir)</Value>
+    </BuildMacro>
+    <BuildMacro Include="BoostDir">
+      <Value>$(BoostDir)</Value>
+    </BuildMacro>
+  </ItemGroup>
+</Project>

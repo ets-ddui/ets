@@ -1,0 +1,4 @@
+LIBRARY      "Debug.DLL"
+
+EXPORTS
+    GetModule     @1 PRIVATE

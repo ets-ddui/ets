@@ -1,0 +1,23 @@
+import "oaidl.idl";
+import "ocidl.idl";
+
+[
+    local,
+    uuid(71A5C550-2D10-4b03-804A-EDDD22279792),
+    pointer_default(unique)
+]
+interface IModule : IUnknown
+{
+};
+
+[
+    uuid(7EC8B49D-FAAC-4660-9F2E-C89D76AE973E),
+    version(0.1)
+]
+library DebugLib
+{
+    importlib("stdole32.tlb");
+    importlib("stdole2.tlb");
+
+    interface IModule;
+};

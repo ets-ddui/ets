@@ -1,0 +1,47 @@
+import "oaidl.idl";
+import "ocidl.idl";
+
+[
+    local,
+    uuid(C87AAC3E-A1EC-41CF-A22B-1604B02BA0F3),
+    pointer_default(unique)
+]
+interface IEtsForScript : IUnknown
+{
+    [] HRESULT FileExists([in] BSTR p_sFileName, [out,retval] VARIANT_BOOL* p_bResult);
+    [] HRESULT GetFrame([in] BSTR p_sPathName, [out,retval] IDispatch** p_itfResult);
+    [] HRESULT GetSetting([in] BSTR p_sName, [out,retval] BSTR* p_sResult);
+    [] HRESULT GetStop([out,retval] VARIANT_BOOL* p_bResult);
+    [] HRESULT GetTicketCount([out,retval] LONG* p_iResult);
+    [] HRESULT LoadPlugin([in] BSTR p_sFileName, [out,retval] IDispatch** p_itfResult);
+    [] HRESULT Log([in] BSTR p_sMessage, [in] BSTR p_sFileName);
+    [] HRESULT Require([in] BSTR p_sModuleName, [out,retval] IDispatch** p_itfResult);
+    [] HRESULT ShowLog([in] BSTR p_sMessage);
+    [] HRESULT Sleep([in] LONG p_iMiliSeconds);
+};
+
+[
+    local,
+    uuid(8A141C26-D302-40E9-8CD0-55A5EF619B3D),
+    pointer_default(unique)
+]
+interface IScript : IUnknown
+{
+    [] HRESULT RegContainer([in] IDispatch* p_itfContainer);
+    [] HRESULT RegFrame([in] IDispatch* p_itfFrame);
+    [] HRESULT RunModule([in] BSTR p_sFileName, [in] BSTR p_sEntryFunction);
+    [] HRESULT RunCode([in] BSTR p_sCode);
+};
+
+[
+    uuid(78660AA6-CEDF-4420-A494-F166FD56228D),
+    version(0.1)
+]
+library ScriptLib
+{
+    importlib("stdole32.tlb");
+    importlib("stdole2.tlb");
+
+    interface IEtsForScript;
+    interface IScript;
+};

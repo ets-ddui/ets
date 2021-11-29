@@ -1,0 +1,31 @@
+{
+    "MainForm": {
+        "Caption": "工具包"
+    },
+    "Frames": [
+        {
+            "Type": "Dll",
+            "Caption": "DebugView",
+            "Class": "TFrmDebugView",
+            "File": "Ext"
+        },
+        {
+            "Type": "Script",
+            "Caption": "工程管理",
+            "Language": "slJScript",
+            "File": "Frame/ProjectManager.js"
+        },
+        {
+            "Type": "Dll",
+            "Caption": "皮肤编辑器",
+            "Class": "TFrmSkinEditor",
+            "File": "Ext"
+        },
+        {
+            "Type": "Dll",
+            "Caption": "脚本测试",
+            "Class": "TFrmPressTest",
+            "File": "Ext"
+        }
+    ]
+}

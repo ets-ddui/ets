@@ -1,0 +1,50 @@
+package dclETSP;
+
+{$R *.res}
+{$ALIGN 8}
+{$ASSERTIONS ON}
+{$BOOLEVAL OFF}
+{$DEBUGINFO ON}
+{$EXTENDEDSYNTAX ON}
+{$IMPORTEDDATA ON}
+{$IOCHECKS ON}
+{$LOCALSYMBOLS ON}
+{$LONGSTRINGS ON}
+{$OPENSTRINGS ON}
+{$OPTIMIZATION ON}
+{$OVERFLOWCHECKS OFF}
+{$RANGECHECKS OFF}
+{$REFERENCEINFO ON}
+{$SAFEDIVIDE OFF}
+{$STACKFRAMES OFF}
+{$TYPEDADDRESS OFF}
+{$VARSTRINGCHECKS ON}
+{$WRITEABLECONST OFF}
+{$MINENUMSIZE 1}
+{$IMAGEBASE $400000}
+{$DESIGNONLY}
+{$IMPLICITBUILD ON}
+
+requires
+  rtl,
+  designide,
+  vcl,
+  xmlrtl,
+  vclactnband,
+  vclx,
+  dbrtl,
+  dsnap,
+  dclDDUI;
+
+contains
+  UETSEntry in 'Src\UETSEntry.pas',
+  UETSWizard in 'Src\UETSWizard.pas',
+  UETSCreator in 'Src\UETSCreator.pas',
+  UFrameBase in '..\BootStrap\Module\UFrameBase.pas',
+  UInterface in '..\BootStrap\Module\UInterface.pas',
+  UETSCommon in 'Src\UETSCommon.pas',
+  UETSProjectCreator in 'Src\UETSProjectCreator.pas' {FmProjectCreator},
+  UETSMenu in 'Src\UETSMenu.pas',
+  UETSNotifier in 'Src\UETSNotifier.pas';
+
+end.

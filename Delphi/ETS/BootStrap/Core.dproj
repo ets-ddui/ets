@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <ProjectGuid>{299283ff-4b76-40d9-aa57-6f900631fe9f}</ProjectGuid>
+    <MainSource>Core.dpk</MainSource>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
+    <ETS_SearchPath>Comm</ETS_SearchPath>
+    <ETS_SubDir>ETS\Dll\Common</ETS_SubDir>
+  </PropertyGroup>
+  <Import Project="..\..\ETS.props" />
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DCC_BplOutput Condition="'$(ETS_SubDir)'!=''">$(BinDir)\ETS\Dll\Common</DCC_BplOutput>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DCC_BplOutput Condition="'$(ETS_SubDir)'!=''">$(BinDir)\ETS\Dll\Common</DCC_BplOutput>
+  </PropertyGroup>
+  <ProjectExtensions>
+    <Borland.Personality>Delphi.Personality</Borland.Personality>
+    <Borland.ProjectType>Package</Borland.ProjectType>
+    <BorlandProject>
+<BorlandProject><Delphi.Personality><Parameters><Parameters Name="UseLauncher">False</Parameters><Parameters Name="LoadAllSymbols">True</Parameters><Parameters Name="LoadUnspecifiedSymbols">False</Parameters><Parameters Name="HostApplication">$(BinDir)\ETS\ETS.exe</Parameters><Parameters Name="DebugCWD">$(BinDir)\ETS\</Parameters></Parameters><Package_Options><Package_Options Name="ImplicitBuild">True</Package_Options><Package_Options Name="DesigntimeOnly">False</Package_Options><Package_Options Name="RuntimeOnly">False</Package_Options></Package_Options><VersionInfo><VersionInfo Name="IncludeVerInfo">True</VersionInfo><VersionInfo Name="AutoIncBuild">False</VersionInfo><VersionInfo Name="MajorVer">1</VersionInfo><VersionInfo Name="MinorVer">0</VersionInfo><VersionInfo Name="Release">0</VersionInfo><VersionInfo Name="Build">0</VersionInfo><VersionInfo Name="Debug">False</VersionInfo><VersionInfo Name="PreRelease">False</VersionInfo><VersionInfo Name="Special">False</VersionInfo><VersionInfo Name="Private">False</VersionInfo><VersionInfo Name="DLL">False</VersionInfo><VersionInfo Name="Locale">2052</VersionInfo><VersionInfo Name="CodePage">936</VersionInfo></VersionInfo><VersionInfoKeys><VersionInfoKeys Name="CompanyName"></VersionInfoKeys><VersionInfoKeys Name="FileDescription"></VersionInfoKeys><VersionInfoKeys Name="FileVersion">1.0.0.0</VersionInfoKeys><VersionInfoKeys Name="InternalName"></VersionInfoKeys><VersionInfoKeys Name="LegalCopyright"></VersionInfoKeys><VersionInfoKeys Name="LegalTrademarks"></VersionInfoKeys><VersionInfoKeys Name="OriginalFilename"></VersionInfoKeys><VersionInfoKeys Name="ProductName"></VersionInfoKeys><VersionInfoKeys Name="ProductVersion">1.0.0.0</VersionInfoKeys><VersionInfoKeys Name="Comments"></VersionInfoKeys></VersionInfoKeys><Source><Source Name="MainSource">Core.dpk</Source></Source></Delphi.Personality></BorlandProject></BorlandProject>
+  </ProjectExtensions>
+  <Import Project="$(MSBuildBinPath)\Borland.Delphi.Targets" />
+  <Import Project="$(SrcDir)\ETS.End.props" />
+  <ItemGroup>
+    <DelphiCompile Include="Core.dpk">
+      <MainSource>MainSource</MainSource>
+    </DelphiCompile>
+    <DCCReference Include="DDUI.dcp" />
+    <DCCReference Include="dsnap.dcp" />
+    <DCCReference Include="JCL.dcp" />
+    <DCCReference Include="rtl.dcp" />
+    <DCCReference Include="vcl.dcp" />
+    <DCCReference Include="vcldb.dcp" />
+    <DCCReference Include="MainForm\UChild.pas" />
+    <DCCReference Include="MainForm\UForm.pas" />
+    <DCCReference Include="MainForm\ULogManager.pas" />
+    <DCCReference Include="MainForm\UMessageConst.pas" />
+    <DCCReference Include="MainForm\UScript.pas" />
+    <DCCReference Include="MainForm\USettingManager.pas" />
+    <DCCReference Include="Module\UAppInit.pas" />
+    <DCCReference Include="Module\UBindEvent.pas" />
+    <DCCReference Include="Module\UDispatchWrapper.pas" />
+    <DCCReference Include="Module\UFrameBase.pas" />
+    <DCCReference Include="Module\UInterface.pas" />
+    <DCCReference Include="Module\ULibraryManager.pas" />
+    <DCCReference Include="Module\UManager.pas" />
+    <DCCReference Include="Module\UMemoryBlock.pas" />
+    <DCCReference Include="Module\UModuleBase.pas" />
+    <DCCReference Include="Module\UTrayIcon.pas" />
+    <DCCReference Include="UI\Grid\UETSTreeGrid.pas" />
+    <DCCReference Include="UI\UETSRegComponents.pas" />
+    <DCCReference Include="UService.pas" />
+    <EmbeddedResource Include="Core.rc" />
+  </ItemGroup>
+</Project>

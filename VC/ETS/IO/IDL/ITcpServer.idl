@@ -1,0 +1,23 @@
+import "oaidl.idl";
+import "ocidl.idl";
+
+[
+    local,
+    uuid(41241140-00DF-40A8-89FD-2AA0E08E5DBA),
+    pointer_default(unique)
+]
+interface ITcpServer : IUnknown
+{
+};
+
+[
+    uuid(9C8D2B38-CBBE-475D-B929-6DE82BCD33F5),
+    version(0.1)
+]
+library IOLib
+{
+    importlib("stdole32.tlb");
+    importlib("stdole2.tlb");
+
+    interface ITcpServer;
+};
