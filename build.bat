@@ -8,11 +8,11 @@ set SrcBoost=%BinDir%/Boost
 
 rem 1.0 “¿¿µπ§æﬂœ¬‘ÿ
 if not exist DDUI (
-git clone https://github.com/ets-ddui/ets-ddui.git DDUI || goto EOF
+git clone https://gitee.com/ets-ddui/ets-ddui.git DDUI || goto EOF
 )
 
 if not exist Tools (
-git clone https://github.com/ets-ddui/build-tools.git Tools || goto EOF
+git clone https://gitee.com/ets-ddui/build-tools.git Tools || goto EOF
 )
 
 rem 1.1 boost±‡“Î
