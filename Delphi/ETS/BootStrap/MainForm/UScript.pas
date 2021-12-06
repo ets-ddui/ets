@@ -31,7 +31,7 @@ type
 implementation
 
 uses
-  TypInfo, qjson, UModuleBase, UDispatchWrapper, UDUIUtils;
+  Controls, TypInfo, qjson, UModuleBase, UDispatchWrapper, UDUIUtils, UDUIForm, UTool;
 
 {$R *.dfm}
 
@@ -156,7 +156,11 @@ begin
     Result := WrapperObject(ctl, False);
 end;
 
-function CreateFrameImpl(AObject: TObject; AName: String; AFlag: Word;
+//CreateFrame
+//传入json格式的配置，创建子控件，控件支持级联(类似dfm，但改用json作为配置)
+//调用样例(js代码)：
+//objFrame.CreateFrame('{"__class__": "TDUIBase", "__property__": {...}, "__child__": [...]}')
+function CreateFrame(AObject: TObject; AName: String; AFlag: Word;
   AParamCount: Integer; const AParams: PVariantArray): OleVariant;
 var
   js: TQJson;
@@ -186,6 +190,54 @@ begin
     Result := WrapperObject(ctl, False);
 end;
 
+//CreateChild
+//创建AObject的子控件(将控件创建放到脚本中处理，用于取代CreateFrame的功能)
+//调用样例(js代码)：
+//objFrame.CreateChild('TDUIBase')
+function CreateChild(AObject: TObject; AName: String; AFlag: Word;
+  AParamCount: Integer; const AParams: PVariantArray): OleVariant;
+var
+  cc: TComponentClass;
+  obj: TComponent;
+begin
+  Result := Null;
+  if AParamCount <> 1 then
+    Exit;
+
+  try
+    cc := TComponentClass(FindClass(VarToStr(AParams[0])));
+  except
+    on e: EClassNotFound do
+    begin
+      WriteView('无法找到类信息(%s)', [VarToStr(AParams[0])]);
+      Exit;
+    end;
+  end;
+
+  obj := cc.Create(TComponent(AObject));
+  if obj is TDUIBase then
+  begin
+    if AObject is TDUIForm then
+      TDUIBase(obj).Parent := TWinControl(AObject)
+    else if AObject is TDUIBase then
+      TDUIBase(obj).DUIParent := TDUIBase(AObject)
+    else
+    begin
+      obj.Free;
+      Exit;
+    end;
+  end
+  else if (obj is TControl) and (AObject is TWinControl) then
+    TControl(obj).Parent := TWinControl(AObject)
+  else
+  begin
+    obj.Free;
+    Exit;
+  end;
+
+  Result := WrapperObject(obj, False);
+end;
+
 type
   TSyncCallback = class
   strict private
@@ -195,10 +247,15 @@ type
     FParamCount: Integer;
     FParams: PVariantArray;
     FResult: POleVariant;
+    class function DoCall(AObject: TObject; AName: String; AFlag: Word;
+      AParamCount: Integer; const AParams: PVariantArray): OleVariant;
   public
     constructor Create(AObject: TObject; AName: String; AFlag: Word;
       AParamCount: Integer; const AParams: PVariantArray; AResult: POleVariant);
     procedure Call;
+  public
+    class function SyncCall(AObject: TObject; AName: String; AFlag: Word;
+      AParamCount: Integer; const AParams: PVariantArray): OleVariant;
   end;
 
 { TSyncCallback }
@@ -218,19 +275,26 @@ end;
 
 procedure TSyncCallback.Call;
 begin
-  FResult^ := CreateFrameImpl(FObject, FName, FFlag, FParamCount, FParams);
+  FResult^ := DoCall(FObject, FName, FFlag, FParamCount, FParams);
 end;
 
-//CreateFrame
-//传入json格式的配置，创建子控件，控件支持级联(类似dfm，但改用json作为配置)
-//调用样例(js代码)：
-//objFrame.CreateFrame('{"__class__": "TDUIBase", "__property__": {...}, "__child__": [...]}')
-function CreateFrame(AObject: TObject; AName: String; AFlag: Word;
-  AParamCount: Integer; const AParams: PVariantArray): OleVariant;
+class function TSyncCallback.DoCall(AObject: TObject; AName: String;
+  AFlag: Word; AParamCount: Integer; const AParams: PVariantArray): OleVariant;
+begin
+  if CompareText(AName, 'CreateFrame') = 0 then
+    Result := CreateFrame(AObject, AName, AFlag, AParamCount, AParams)
+  else if CompareText(AName, 'CreateChild') = 0 then
+    Result := CreateChild(AObject, AName, AFlag, AParamCount, AParams)
+  else
+    Result := Null;
+end;
+
+class function TSyncCallback.SyncCall(AObject: TObject; AName: String;
+  AFlag: Word; AParamCount: Integer; const AParams: PVariantArray): OleVariant;
 begin
   //控件创建的过程统一放在主线程中处理，防止待句柄的控件的消息循环出现问题
   if GetCurrentThreadID = MainThreadID then
-    Result := CreateFrameImpl(AObject, AName, AFlag, AParamCount, AParams)
+    Result := DoCall(AObject, AName, AFlag, AParamCount, AParams)
   else
     with TSyncCallback.Create(AObject, AName, AFlag, AParamCount, AParams, @Result) do
       try
@@ -240,8 +304,15 @@ begin
       end;
 end;
 
+function SyncCall(AObject: TObject; AName: String;
+  AFlag: Word; AParamCount: Integer; const AParams: PVariantArray): OleVariant;
+begin
+  Result := TSyncCallback.SyncCall(AObject, AName, AFlag, AParamCount, AParams);
+end;
+
 initialization
   TDispatchWrapper.RegCustomDispatch(TDUIBase, 'GetFrame', GetFrame);
-  TDispatchWrapper.RegCustomDispatch(TDUIBase, 'CreateFrame', CreateFrame);
+  TDispatchWrapper.RegCustomDispatch(TDUIBase, 'CreateFrame', SyncCall);
+  TDispatchWrapper.RegCustomDispatch(TControl, 'CreateChild', SyncCall);
 
 end.

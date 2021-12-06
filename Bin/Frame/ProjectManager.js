@@ -33,7 +33,7 @@ var g_Frame = {
                     "__class__": "TETSComboBox",
                     "__property__": {
                         "Align": "alLeft",
-                        "Width": "100"
+                        "Width": 100
                     }
                 }
             ]
