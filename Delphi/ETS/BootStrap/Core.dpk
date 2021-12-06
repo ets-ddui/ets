@@ -50,6 +50,7 @@ contains
   UMemoryBlock in 'Module\UMemoryBlock.pas',
   UModuleBase in 'Module\UModuleBase.pas',
   UETSRegComponents in 'UI\UETSRegComponents.pas',
+  UETSComboBox in 'UI\UETSComboBox.pas',
   UETSTreeGrid in 'UI\Grid\UETSTreeGrid.pas',
   UService in 'UService.pas';
 

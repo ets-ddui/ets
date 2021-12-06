@@ -95,10 +95,21 @@ namespace ets
                 }
 
                 std::error_code ec;
-                m_spChild.reset(new ETS_PREFIX::process::child(ec, env, p_sExecute,
-                    ETS_PREFIX::process::windows::hide,
-                    ETS_PREFIX::process::std_in < m_apWrite, //在child创建成功后，会调用on_success事件，而async_pipe_out、async_pipe_in会将另一个管道关闭，因此，需要将读写管道分开管理
-                    ETS_PREFIX::process::std_out > m_apRead));
+                if ("" != p_sWorkDir)
+                {
+                    m_spChild.reset(new ETS_PREFIX::process::child(ec, env, p_sExecute,
+                        ETS_PREFIX::process::start_dir(p_sWorkDir),
+                        ETS_PREFIX::process::windows::hide,
+                        ETS_PREFIX::process::std_in < m_apWrite, //在child创建成功后，会调用on_success事件，而async_pipe_out、async_pipe_in会将另一个管道关闭，因此，需要将读写管道分开管理
+                        ETS_PREFIX::process::std_out > m_apRead));
+                }
+                else
+                {
+                    m_spChild.reset(new ETS_PREFIX::process::child(ec, env, p_sExecute,
+                        ETS_PREFIX::process::windows::hide,
+                        ETS_PREFIX::process::std_in < m_apWrite, //在child创建成功后，会调用on_success事件，而async_pipe_out、async_pipe_in会将另一个管道关闭，因此，需要将读写管道分开管理
+                        ETS_PREFIX::process::std_out > m_apRead));
+                }
                 if (ec)
                 {
                     return false;
@@ -123,6 +134,14 @@ namespace ets
                     {
                         m_apWrite.sink().get_io_service().run_one();
                     }
+                }
+            }
+
+            void Close()
+            {
+                while (!DoClose())
+                {
+                    m_apWrite.sink().get_io_service().run_one();
                 }
             }
 

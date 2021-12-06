@@ -110,6 +110,14 @@ namespace ets
                 return S_OK;
             }
 
+            STDMETHOD(Close)(void)
+            {
+                //Close只会关闭“写管道”，“读管道”继续处理
+                boost::fusion::at_c<0>(m_vHandler).Close();
+
+                return S_OK;
+            }
+
         private:
             boost::fusion::vector<CPsHandler, CLineHandler, CJsHandler> m_vHandler;
 

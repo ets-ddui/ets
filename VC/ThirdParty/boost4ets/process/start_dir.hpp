@@ -47,20 +47,20 @@ struct start_dir_
     BOOST_CONSTEXPR start_dir_() {};
 
     template<typename Char>
-    api::start_dir_init<Char> operator()(const std::basic_string<Char> & st) const {return {st}; }
+    api::start_dir_init<Char> operator()(const std::basic_string<Char> & st) const {return st; }
     template<typename Char>
-    api::start_dir_init<Char> operator()(std::basic_string<Char> && s) const {return {std::move(s)}; }
+    api::start_dir_init<Char> operator()(std::basic_string<Char> && s) const {return std::move(s); }
     template<typename Char>
-    api::start_dir_init<Char> operator()(const Char* s)                const {return {s}; }
+    api::start_dir_init<Char> operator()(const Char* s)                const {return s; }
     api::start_dir_init<typename boost::filesystem::path::value_type>
                               operator()(const boost::filesystem::path & st) const {return st.native(); }
 
     template<typename Char>
-    api::start_dir_init<Char> operator= (const std::basic_string<Char> & st) const {return {st}; }
+    api::start_dir_init<Char> operator= (const std::basic_string<Char> & st) const {return st; }
     template<typename Char>
-    api::start_dir_init<Char> operator= (std::basic_string<Char> && s) const {return {std::move(s)}; }
+    api::start_dir_init<Char> operator= (std::basic_string<Char> && s) const {return std::move(s); }
     template<typename Char>
-    api::start_dir_init<Char> operator= (const Char* s)                const {return {s}; }
+    api::start_dir_init<Char> operator= (const Char* s)                const {return s; }
     api::start_dir_init<typename boost::filesystem::path::value_type>
                               operator= (const boost::filesystem::path & st) const {return st.native(); }
 

@@ -5,6 +5,40 @@ var g_Frame = {
     },
     "__child__": [
         {
+            "__class__": "TDUIPanel",
+            "__property__": {
+                "Align": "alTop",
+                "Height": 25
+            },
+            "__child__": [
+                {
+                    "__class__": "TDUIButton",
+                    "__property__": {
+                        "Align": "alLeft",
+                        "Width": 25,
+                        "Shape": {
+                            "__property__": {
+                                "Picture": {
+                                    "__property__": {
+                                        "SkinName": "SYSTEM[开启1,开启2]"
+                                    }
+                                },
+                                "Width": 16,
+                                "Height": 16
+                            }
+                        }
+                    }
+                },
+                {
+                    "__class__": "TETSComboBox",
+                    "__property__": {
+                        "Align": "alLeft",
+                        "Width": "100"
+                    }
+                }
+            ]
+        },
+        {
             "__class__": "TETSTreeGrid",
             "__property__": {
                 "Name": "tgFiles",
@@ -29,9 +63,10 @@ var g_Frame = {
 };
 
 var g_sWorkSpace = "";
+var g_sToolChain = "";
 
-function SelectToolChain(p_sToolChain) {
-    switch (p_sToolChain) {
+function SelectToolChain() {
+    switch (g_sToolChain) {
         case "Make":
             return Require("Frame/ToolChain/Make.js");
         case "GN":
@@ -43,12 +78,21 @@ function SelectToolChain(p_sToolChain) {
     }
 }
 
+function DoToolChainChanged() {
+    var tgFiles = GetFrame("").GetFrame("[0].tgFiles");
+    var tnRootNode = tgFiles.RootNode;
+
+    var objToolChain = SelectToolChain();
+    var arrTargets = objToolChain.ListTargets("");
+}
+
 function InitFileList(p_This, p_sPath, p_iIndex, p_iCount) {
     //1.0 清理界面数据
     var tgFiles = GetFrame("").GetFrame("[0].tgFiles");
     var tnRootNode = tgFiles.RootNode;
     tnRootNode.Clear();
     g_sWorkSpace = "";
+    g_sToolChain = "";
 
     //2.0 目录名默认当成工程名处理
     var arrProject = p_sPath.match(/^.*[\\\/]([^\\\/]*)$/);
@@ -67,7 +111,9 @@ function InitFileList(p_This, p_sPath, p_iIndex, p_iCount) {
 
     //4.0 界面初始化
     g_sWorkSpace = p_sPath;
+    g_sToolChain = arrToolChain[0];
     var tnProject = tnRootNode.AddChild(sProjName, false);
+    DoToolChainChanged();
 }
 
 function Init() {

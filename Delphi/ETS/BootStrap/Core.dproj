@@ -51,6 +51,7 @@
     <DCCReference Include="Module\UModuleBase.pas" />
     <DCCReference Include="Module\UTrayIcon.pas" />
     <DCCReference Include="UI\Grid\UETSTreeGrid.pas" />
+    <DCCReference Include="UI\UETSComboBox.pas" />
     <DCCReference Include="UI\UETSRegComponents.pas" />
     <DCCReference Include="UService.pas" />
     <EmbeddedResource Include="Core.rc" />

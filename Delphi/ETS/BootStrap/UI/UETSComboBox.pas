@@ -12,20 +12,34 @@
   作者邮箱: xinghun87@163.com
   官方博客：https://blog.csdn.net/xinghun61
 }
-unit UETSRegComponents;
+unit UETSComboBox;
 
 interface
 
-procedure RegComponents;
+uses
+  UDUIComboBox;
+
+type
+  {$METHODINFO ON}
+  TETSComboBox = class(TDUIComboBox)
+  public
+    function AddData(AValue: String): Integer;
+    procedure Clear;
+  end;
+  {$METHODINFO OFF}
 
 implementation
 
-uses
-  Classes, UETSComboBox, UETSTreeGrid;
+{ TETSComboBox }
 
-procedure RegComponents;
+function TETSComboBox.AddData(AValue: String): Integer;
 begin
-  RegisterClasses([TETSComboBox, TETSTreeGrid]);
+  Result := inherited AddData(AValue);
+end;
+
+procedure TETSComboBox.Clear;
+begin
+  inherited;
 end;
 
 end.
