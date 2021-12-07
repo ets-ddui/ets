@@ -61,8 +61,7 @@ var g_objToolChain = undefined;
 
 function DoToolChainChange() {
     var frmMain = GetFrame("");
-    var tgFiles = frmMain.FindChild("tgFiles");
-    var tnProjNode = tgFiles.RootNode.GetItems(0);
+    var tnProjNode = frmMain.FindChild("tgFiles").RootNode.GetItems(0);
     tnProjNode.Clear();
 
     var cbToolChain = frmMain.FindChild("cbToolChain");
@@ -85,13 +84,15 @@ function DoToolChainChange() {
 }
 
 function InitFileList(p_This, p_sPath, p_iIndex, p_iCount) {
-    //1.0 清理界面数据
-    var frmMain = GetFrame("");
-    var tgFiles = frmMain.FindChild("tgFiles");
-    var tnRootNode = tgFiles.RootNode;
-    tnRootNode.Clear();
     g_sWorkSpace = "";
     g_objToolChain = undefined;
+
+    //1.0 清理界面数据
+    var frmMain = GetFrame("");
+    var cbToolChain = frmMain.FindChild("cbToolChain");
+    cbToolChain.Clear();
+    var tnRootNode = frmMain.FindChild("tgFiles").RootNode;
+    tnRootNode.Clear();
 
     //2.0 目录名默认当成工程名处理
     var arrProject = p_sPath.match(/^.*[\\\/]([^\\\/]*)$/);
@@ -101,8 +102,6 @@ function InitFileList(p_This, p_sPath, p_iIndex, p_iCount) {
     var sProjName = arrProject[1];
 
     //3.0 工具链测试
-    var cbToolChain = frmMain.FindChild("cbToolChain");
-
     if (Ets.FileExists([p_sPath, "makefile"].join("/"))) cbToolChain.AddData("Make");
     if (Ets.FileExists([p_sPath, "BUILD.gn"].join("/"))) cbToolChain.AddData("GN");
     if (Ets.FileExists([p_sPath, "/", sProjName, ".sln"].join(""))) cbToolChain.AddData("VC");
