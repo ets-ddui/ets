@@ -228,12 +228,58 @@ begin
     end;
   end
   else if (obj is TControl) and (AObject is TWinControl) then
-    TControl(obj).Parent := TWinControl(AObject)
-  else
+    TControl(obj).Parent := TWinControl(AObject);
+
+  Result := WrapperObject(obj, False);
+end;
+
+//FindChild
+//从所有子孙控件中，查找第一个名称为ControlName的控件
+//调用样例(js代码)：
+//objFrame.FindChild('ControlName')
+function FindChild(AObject: TObject; AName: String; AFlag: Word;
+  AParamCount: Integer; const AParams: PVariantArray): OleVariant;
+  function doFind(AParent: TControl; AName: String): TControl;
+  var
+    i: Integer;
   begin
-    obj.Free;
-    Exit;
+    if CompareText(AParent.Name, AName) = 0 then
+    begin
+      Result := AParent;
+      Exit;
+    end;
+
+    if AParent is TDUIBase then
+    begin
+      for i := 0 to TDUIBase(AParent).ControlCount - 1 do
+      begin
+        Result := doFind(TDUIBase(AParent).Controls[i], AName);
+        if Assigned(Result) then
+          Exit;
+      end;
+    end
+    else if AParent is TWinControl then
+    begin
+      for i := 0 to TWinControl(AParent).ControlCount - 1 do
+      begin
+        Result := doFind(TWinControl(AParent).Controls[i], AName);
+        if Assigned(Result) then
+          Exit;
+      end;
+    end;
+
+    Result := nil;
   end;
+var
+  obj: TControl;
+begin
+  Result := Null;
+  if AParamCount <> 1 then
+    Exit;
+
+  obj := doFind(TControl(AObject), VarToStr(AParams[0]));
+  if not Assigned(obj) then
+    Exit;
 
   Result := WrapperObject(obj, False);
 end;
@@ -314,5 +360,6 @@ initialization
   TDispatchWrapper.RegCustomDispatch(TDUIBase, 'GetFrame', GetFrame);
   TDispatchWrapper.RegCustomDispatch(TDUIBase, 'CreateFrame', SyncCall);
   TDispatchWrapper.RegCustomDispatch(TControl, 'CreateChild', SyncCall);
+  TDispatchWrapper.RegCustomDispatch(TControl, 'FindChild', FindChild);
 
 end.

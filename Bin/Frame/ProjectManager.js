@@ -15,6 +15,7 @@ var g_Frame = {
                     "__class__": "TDUIButton",
                     "__property__": {
                         "Align": "alLeft",
+                        "Enabled": false,
                         "Width": 25,
                         "Shape": {
                             "__property__": {
@@ -26,14 +27,20 @@ var g_Frame = {
                                 "Width": 16,
                                 "Height": 16
                             }
+                        },
+                        "OnClick": function () {
+                            ShowLog("脚本窗口事件测试");
                         }
                     }
                 },
                 {
                     "__class__": "TETSComboBox",
                     "__property__": {
+                        "Name": "cbToolChain",
                         "Align": "alLeft",
-                        "Width": 100
+                        "Enabled": false,
+                        "Width": 100,
+                        "OnChange": DoToolChainChange
                     }
                 }
             ]
@@ -45,54 +52,46 @@ var g_Frame = {
                 "Align": "alLeft",
                 "Width": 150
             }
-        },
-        {
-            "__class__": "TDUIButton",
-            "__property__": {
-                "Caption": "Test",
-                "Left": 500,
-                "Top": 10,
-                "Width": 100,
-                "Height": 25,
-                "OnClick": function () {
-                    ShowLog("脚本窗口事件测试");
-                }
-            }
         }
     ]
 };
 
 var g_sWorkSpace = "";
-var g_sToolChain = "";
+var g_objToolChain = undefined;
 
-function SelectToolChain() {
-    switch (g_sToolChain) {
+function DoToolChainChange() {
+    var frmMain = GetFrame("");
+    var tgFiles = frmMain.FindChild("tgFiles");
+    var tnProjNode = tgFiles.RootNode.GetItems(0);
+    tnProjNode.Clear();
+
+    var cbToolChain = frmMain.FindChild("cbToolChain");
+    switch (cbToolChain.Text) {
         case "Make":
-            return Require("Frame/ToolChain/Make.js");
+            g_objToolChain = Require("Frame/ToolChain/Make.js");
+            break;
         case "GN":
-            return Require("Frame/ToolChain/GN.js");
+            g_objToolChain = Require("Frame/ToolChain/GN.js");
+            break;
         case "VC":
-            return Require("Frame/ToolChain/VC.js");
-        default:
-            return undefined;
+            g_objToolChain = Require("Frame/ToolChain/VC.js");
+            break;
     }
-}
 
-function DoToolChainChanged() {
-    var tgFiles = GetFrame("").GetFrame("[0].tgFiles");
-    var tnRootNode = tgFiles.RootNode;
-
-    var objToolChain = SelectToolChain();
-    var arrTargets = objToolChain.ListTargets("");
+    var arrTargets = g_objToolChain.ListTargets("");
+    for (var i in arrTargets) {
+        tnProjNode.AddChild(arrTargets[i], false);
+    }
 }
 
 function InitFileList(p_This, p_sPath, p_iIndex, p_iCount) {
     //1.0 清理界面数据
-    var tgFiles = GetFrame("").GetFrame("[0].tgFiles");
+    var frmMain = GetFrame("");
+    var tgFiles = frmMain.FindChild("tgFiles");
     var tnRootNode = tgFiles.RootNode;
     tnRootNode.Clear();
     g_sWorkSpace = "";
-    g_sToolChain = "";
+    g_objToolChain = undefined;
 
     //2.0 目录名默认当成工程名处理
     var arrProject = p_sPath.match(/^.*[\\\/]([^\\\/]*)$/);
@@ -102,18 +101,18 @@ function InitFileList(p_This, p_sPath, p_iIndex, p_iCount) {
     var sProjName = arrProject[1];
 
     //3.0 工具链测试
-    var arrToolChain = [];
+    var cbToolChain = frmMain.FindChild("cbToolChain");
 
-    if (Ets.FileExists([p_sPath, "makefile"].join("/"))) arrToolChain.push("Make");
-    if (Ets.FileExists([p_sPath, "BUILD.gn"].join("/"))) arrToolChain.push("GN");
-    if (Ets.FileExists([p_sPath, "/", sProjName, ".sln"].join(""))) arrToolChain.push("VC");
-    if (!arrToolChain) return;
+    if (Ets.FileExists([p_sPath, "makefile"].join("/"))) cbToolChain.AddData("Make");
+    if (Ets.FileExists([p_sPath, "BUILD.gn"].join("/"))) cbToolChain.AddData("GN");
+    if (Ets.FileExists([p_sPath, "/", sProjName, ".sln"].join(""))) cbToolChain.AddData("VC");
+    if (0 == cbToolChain.ItemCount) return;
 
     //4.0 界面初始化
     g_sWorkSpace = p_sPath;
-    g_sToolChain = arrToolChain[0];
-    var tnProject = tnRootNode.AddChild(sProjName, false);
-    DoToolChainChanged();
+    tnRootNode.AddChild(sProjName, false);
+    cbToolChain.Enabled = true;
+    cbToolChain.ItemIndex = 1;
 }
 
 function Init() {
