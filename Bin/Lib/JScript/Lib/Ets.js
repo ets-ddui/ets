@@ -73,7 +73,7 @@ __this__ = this;
     //2.0 Ets模块功能封装(将Ets中的功能复制到JScript的全局对象中)
     __modules__ = {__plugins__: {}, __codes__: {}};
 
-    __this__.LoadPlugin = function (p_sFileName) {
+    LoadPlugin = function (p_sFileName) {
         //1.0 查找文件的存在性
         var sFileName = FindFile(GetPlatform().pluginPath, p_sFileName.replace(/\\/g, "/"), ".dll");
         if ("" === sFileName) {
@@ -99,7 +99,7 @@ __this__ = this;
         //1.0 查找文件的存在性
         var sFileName = FindFile(GetPlatform().jsPath, p_sFileName.replace(/\\/g, "/"), ".js");
         if ("" === sFileName) {
-            ThrowError("模块不存在：%1".Format(p_sFileName));
+            return LoadPlugin(p_sFileName);
         }
 
         //2.0 加载模块，并按全路径名缓存到全局对象中
