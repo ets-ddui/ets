@@ -36,11 +36,10 @@ type
     procedure BlMainChanging(ASender: TObject; AOldIndex, ANewIndex: Integer;
       var ACanChange: Boolean);
   private
-    FConfig, FLog: TDUIButton;
     FFrames: TInterfaceList;
-    FFormList: array[TPinStyle] of TForm;
-    FSplitter: array[TPinStyle] of TSplitter;
+    FSysButtons: TInterfaceList;
     FTrayIconService: TTrayIconService;
+    function AddButtonChild(AChild: IChild): TDUIButton;
     procedure WMSysCommand(var AMessage: TWMSysCommand); message WM_SYSCOMMAND;
     procedure WMEraseBkgnd(var AMessage: TWmEraseBkgnd); message WM_ERASEBKGND;
     procedure CMIdle(var AMessage: TMessage); message CM_IDLE;
@@ -58,10 +57,13 @@ implementation
 
 uses
   IniFiles, Math, StrUtils, Variants, ActiveX, TypInfo, qjson, qstring,
-  UFrameBase, UChild, USettingManager, ULogManager, UTool, ULibraryManager, UAppInit,
-  UService, UDUIShape, UScript;
+  UFrameBase, UChild, USettingManager, ULogManager, UTool, ULibraryManager,
+  UAppInit, UService, UDUIShape, UDUIUtils, UScript;
 
 {$R *.dfm}
+
+const
+  CSysButtons: Integer = 100000; //SysButtons的起始序号
 
 { TFmMain }
 
@@ -105,70 +107,33 @@ begin
 end;
 
 procedure TFmMain.DoClick(ASender: TObject);
-const
-  cAlign: array[TPinStyle] of TAlign = (alNone, alLeft, alTop, alRight, alBottom, alNone);
 var
-  ps: TPinStyle;
+  iIndex: Integer;
+  bCanChange: Boolean;
 begin
-  if ASender = FConfig then
-    ps := psRight
-  else if ASender = FLog then
-    ps := psBottom
-  else
+  iIndex := TDUIButton(ASender).Tag - CSysButtons;
+  if (iIndex < 0) or (iIndex >= FSysButtons.Count) then
   begin
     inherited;
     Exit;
   end;
 
-  if FFormList[ps].Showing then
-  begin
-    FFormList[ps].Hide;
-    FSplitter[ps].Visible := False;
-  end
-  else
-  begin
-    if FFormList[ps].Floating then
-    begin
-      FFormList[ps].Align := cAlign[ps];
-      FSplitter[ps].Align := cAlign[ps];
-      FFormList[ps].ManualDock(Self, nil, CAlign[ps]);
-    end;
-    FFormList[ps].Show;
-    FSplitter[ps].Visible := True;
-
-    case ps of
-      psRight:
-      begin
-        FFormList[ps].Left := 0;
-        FSplitter[ps].Left := 0;
-      end;
-      psBottom:
-      begin
-        FFormList[ps].Top := 0;
-        FSplitter[ps].Top := 0;
-      end;
-    end;
-  end;
+  bCanChange := True;
+  IChild(FSysButtons[iIndex]).Notify(ntToggle, bCanChange);
 end;
 
 procedure TFmMain.FormClose(ASender: TObject; var AAction: TCloseAction);
 var
   ps: TPinStyle;
 begin
-  //1.0 释放日志及参数配置窗口
-  for ps := Low(TPinStyle) to High(TPinStyle) do
-  begin
-    FreeAndNil(FFormList[ps]);
-    FreeAndNil(FSplitter[ps]);
-  end;
-
-  //2.0 释放子窗口
+  //1.0 释放子窗口
   FreeAndNil(FFrames);
+  FreeAndNil(FSysButtons);
 
-  //3.0 释放所有DLL，这样可保证DLL中的静态对象引用的FManager被释放(例如，UQueueManager.TQueue.FManager)
+  //2.0 释放所有DLL，这样可保证DLL中的静态对象引用的FManager被释放(例如，UQueueManager.TQueue.FManager)
   TLibraryManager.UnInit(True);
 
-  //4.0 释放FManager及相关资源
+  //3.0 释放FManager及相关资源
   FreeAndNil(FTrayIconService);
   SetManager(nil);
 end;
@@ -180,34 +145,14 @@ end;
 
 procedure TFmMain.FormCreate(Sender: TObject);
 begin
-  FConfig := AddSysButton(stSetting);
-  with FConfig.Shape do
-  begin
-    Width := 15;
-    Height := 15;
-  end;
-  FLog := AddSysButton(stLog);
-  FLog.Shape.Width := 9;
-
   ImgBackground.Picture.SkinName := 'SYSTEM.BACKGROUND';
 
   FFrames := TInterfaceList.Create;
+  FSysButtons := TInterfaceList.Create;
 
   FTrayIconService := TTrayIconService.Create(nil);
 
   SetManager(TManager.Create(nil, TService.Create(FTrayIconService)));
-
-  FFormList[psRight] := TFmSetting.Create(nil);
-  FFormList[psRight].Tag := Ord(psRight);
-  FSplitter[psRight] := TSplitter.Create(nil);
-  FSplitter[psRight].Parent := Self;
-  FSplitter[psRight].Visible := False;
-
-  FFormList[psBottom] := TFmLog.Create(nil);
-  FFormList[psBottom].Tag := Ord(psBottom);
-  FSplitter[psBottom] := TSplitter.Create(nil);
-  FSplitter[psBottom].Parent := Self;
-  FSplitter[psBottom].Visible := False;
 end;
 
 procedure TFmMain.FormShow(Sender: TObject);
@@ -264,14 +209,34 @@ begin
   FFrames.Add(AChild);
 end;
 
+function TFmMain.AddButtonChild(AChild: IChild): TDUIButton;
+begin
+  Result := nil;
+  if not Assigned(AChild) then
+    Exit;
+
+  Result := AddSysButton(stNone);
+  Result.Tag := FSysButtons.Count + CSysButtons;
+  AChild.Init(Self, FSysButtons.Count + CSysButtons);
+  FSysButtons.Add(AChild);
+end;
+
 var
   GConfig: Pointer;
 
 function TFmMain.GetParam(AIndex: Integer): TParam;
 begin
   Result.FHandle := Handle;
-  Result.FRect := PnlMain.BoundsRect;
-  Result.FParent := PnlMain;
+  if AIndex >= CSysButtons then
+  begin
+    Result.FRect := ImgBackground.BoundsRect;
+    Result.FParent := ImgBackground;
+  end
+  else
+  begin
+    Result.FRect := PnlMain.BoundsRect;
+    Result.FParent := PnlMain;
+  end;
   Result.FConfig := GConfig;
 end;
 
@@ -311,7 +276,7 @@ var
 begin
   AResult := False;
 
-  if (ANotifyType = ntActive) and not Assigned(FChild) then
+  if (ANotifyType in [ntActive, ntToggle]) and not Assigned(FChild) then
   begin
     strType := FConfig.ValueByName('Type', '');
     if CompareText(strType, 'Script') = 0 then
@@ -347,7 +312,23 @@ procedure CreateForm;
     for i := 0 to AConfig.Count - 1 do
       SetPropValue(AForm, AConfig[i].Name, AConfig[i].Value);
   end;
-  procedure initManager(AParent: IParent; const AConfig: TQJson);
+  procedure initSysButtons(AForm: TFmMain; const AConfig: TQJson);
+  var
+    i: Integer;
+    js: TQJson;
+    obj: TObject;
+  begin
+    if not Assigned(AConfig) or not AConfig.IsArray then
+      Exit;
+
+    for i := 0 to AConfig.Count - 1 do
+    begin
+      js := AConfig[i];
+      obj := AForm.AddButtonChild(TDelayLoaded.Create(js)).Shape;
+      JsonToComponent(obj, js, nil);
+    end;
+  end;
+  procedure initFrames(AParent: IParent; const AConfig: TQJson);
   var
     i: Integer;
     js: TQJson;
@@ -364,7 +345,7 @@ procedure CreateForm;
       begin
         frmChild := TFrmChild.Create(nil);
         AParent.AddChild(js.ValueByName('Caption', ''), frmChild);
-        initManager(frmChild, js.ItemByName('Frames'));
+        initFrames(frmChild, js.ItemByName('Frames'));
 
         Continue;
       end;
@@ -383,7 +364,8 @@ begin
     jsConfig.LoadFromFile('.\Config\Framework.json');
 
     initMainForm(fm, jsConfig.ItemByName('MainForm'));
-    initManager(fm, jsConfig.ItemByName('Frames'));
+    initSysButtons(fm, jsConfig.ItemByName('SysButtons'));
+    initFrames(fm, jsConfig.ItemByName('Frames'));
   finally
     FreeAndNil(jsConfig);
   end;

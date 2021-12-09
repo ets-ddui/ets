@@ -88,7 +88,7 @@ type
     //创建子窗口时需要的各类参数
     property Param[AIndex: Integer]: TParam read GetParam; default;
   end;
-  TNotifyType = (ntActive, ntDeActive, ntResize, ntIdle);
+  TNotifyType = (ntActive, ntDeActive, ntResize, ntIdle, ntToggle);
   IChild = interface(IInterface)
     ['{27B7A08D-B50F-4A07-974B-C944F541BBE9}']
     procedure Init(AParent: IParent; AIndex: Integer);

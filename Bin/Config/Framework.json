@@ -2,6 +2,27 @@
     "MainForm": {
         "Caption": "¹¤¾ß°ü"
     },
+    "SysButtons": [
+        {
+            "Type": "Script",
+            "Language": "slJScript",
+            "File": "Frame/Setting.js",
+            "__property__": {
+                "ShapeType": "stSetting",
+                "Width": 15,
+                "Height": 15
+            }
+        },
+        {
+            "Type": "Script",
+            "Language": "slJScript",
+            "File": "Frame/Log.js",
+            "__property__": {
+                "ShapeType": "stLog",
+                "Width": 9
+            }
+        }
+    ],
     "Frames": [
         {
             "Type": "Dll",
