@@ -54,7 +54,6 @@ uses
   qjson, UAppInit, UModuleBase, UMessageConst;
 
 type
-  {$METHODINFO ON}
   TLogCore = class(TModuleBase, ILog, ILogManager)
   private
     FLock: TCriticalSection;
@@ -73,11 +72,6 @@ type
   public
     constructor Create; override;
     destructor Destroy; override;
-  end;
-
-  TMessageLoop = class(TModuleBase)
-  public
-    procedure Execute;
   end;
 
   TSettingCore = class(TModuleBase, ISetting, ISettingManager)
@@ -118,6 +112,12 @@ type
   public
     constructor Create(ARoot: TSettingCore; ASetting: TQJson); reintroduce;
     destructor Destroy; override;
+  end;
+
+  {$METHODINFO ON}
+  TMessageLoop = class(TModuleBase)
+  public
+    procedure Execute;
   end;
   {$METHODINFO OFF}
 
@@ -225,13 +225,6 @@ begin
   finally
     FLock.Leave;
   end;
-end;
-
-{ TMessageLoop }
-
-procedure TMessageLoop.Execute;
-begin
-  Application.ProcessMessages;
 end;
 
 { TSettingCore }
@@ -456,6 +449,13 @@ begin
   finally
     FLock.Leave;
   end;
+end;
+
+{ TMessageLoop }
+
+procedure TMessageLoop.Execute;
+begin
+  Application.ProcessMessages;
 end;
 
 { TSync }
