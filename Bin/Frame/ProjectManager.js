@@ -75,6 +75,8 @@ function DoToolChainChange() {
         case "VC":
             g_objToolChain = Require("Frame/ToolChain/VC.js");
             break;
+        default:
+            return;
     }
 
     var arrTargets = g_objToolChain.ListTargets("");

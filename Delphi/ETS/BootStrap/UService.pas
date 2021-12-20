@@ -50,11 +50,12 @@ procedure CoreInit;
 implementation
 
 uses
-  Forms, Classes, SyncObjs, SysUtils, qjson, UAppInit, UModuleBase, UMessageConst;
+  Forms, Classes, SyncObjs, SysUtils, Controls, Messages,
+  qjson, UAppInit, UModuleBase, UMessageConst;
 
 type
   {$METHODINFO ON}
-  TLogManager = class(TModuleBase, ILog, ILogManager)
+  TLogCore = class(TModuleBase, ILog, ILogManager)
   private
     FLock: TCriticalSection;
     FValue: TList;
@@ -79,15 +80,15 @@ type
     procedure Execute;
   end;
 
-  TSettingManager = class(TModuleBase, ISetting, ISettingManager)
+  TSettingCore = class(TModuleBase, ISetting, ISettingManager)
   private
     FLock: TCriticalSection;
     FIsDirty: Boolean;
     FSetting: TQJson;
-    FRoot: TSettingManager;
+    FRoot: TSettingCore;
     FCallBack: TCallBackList;
     procedure SetDirty;
-    function WrapItem(AJson: TQJson): TSettingManager;
+    function WrapItem(AJson: TQJson): TSettingCore;
   private
     { ISetting实现 }
     function _Read_GetItem(AIndex: Integer): ISetting; stdcall;
@@ -115,12 +116,18 @@ type
     function RegistCallBack(ACallBack: ICallBack): Pointer; stdcall;
     procedure UnRegistCallBack(AID: Pointer); stdcall;
   public
-    constructor Create(ARoot: TSettingManager; ASetting: TQJson); reintroduce;
+    constructor Create(ARoot: TSettingCore; ASetting: TQJson); reintroduce;
     destructor Destroy; override;
   end;
   {$METHODINFO OFF}
 
-{ TLogManager }
+  //TService可在多线程环境下使用，通过消息循环来保证线程安全
+  TSync = class(TWinControl)
+  protected
+    procedure WndProc(var AMessage: TMessage); override;
+  end;
+
+{ TLogCore }
 
 type
   TLogItem = record
@@ -128,7 +135,7 @@ type
   end;
   PLogItem = ^TLogItem;
 
-constructor TLogManager.Create;
+constructor TLogCore.Create;
 begin
   inherited;
 
@@ -137,7 +144,7 @@ begin
   FLock := TCriticalSection.Create;
 end;
 
-destructor TLogManager.Destroy;
+destructor TLogCore.Destroy;
 begin
   Clear;
 
@@ -148,7 +155,7 @@ begin
   inherited;
 end;
 
-procedure TLogManager.AddLog(AMessage: WideString);
+procedure TLogCore.AddLog(AMessage: WideString);
 var
   pli: PLogItem;
   iIndex: Integer;
@@ -165,7 +172,7 @@ begin
   end;
 end;
 
-procedure TLogManager.Clear;
+procedure TLogCore.Clear;
 var
   i: Integer;
 begin
@@ -180,7 +187,7 @@ begin
   end;
 end;
 
-function TLogManager.GetCount: Integer;
+function TLogCore.GetCount: Integer;
 begin
   FLock.Enter;
   try
@@ -190,7 +197,7 @@ begin
   end;
 end;
 
-function TLogManager.GetLog(AIndex: Integer): WideString;
+function TLogCore.GetLog(AIndex: Integer): WideString;
 begin
   FLock.Enter;
   try
@@ -200,7 +207,7 @@ begin
   end;
 end;
 
-function TLogManager.RegistCallBack(ACallBack: ICallBack): Pointer;
+function TLogCore.RegistCallBack(ACallBack: ICallBack): Pointer;
 begin
   FLock.Enter;
   try
@@ -210,7 +217,7 @@ begin
   end;
 end;
 
-procedure TLogManager.UnRegistCallBack(AID: Pointer);
+procedure TLogCore.UnRegistCallBack(AID: Pointer);
 begin
   FLock.Enter;
   try
@@ -227,12 +234,12 @@ begin
   Application.ProcessMessages;
 end;
 
-{ TSettingManager }
+{ TSettingCore }
 
 const
   CConfFile: String = '.\Config\ETS.json';
 
-constructor TSettingManager.Create(ARoot: TSettingManager; ASetting: TQJson);
+constructor TSettingCore.Create(ARoot: TSettingCore; ASetting: TQJson);
 begin
   inherited Create;
 
@@ -254,7 +261,7 @@ begin
   end;
 end;
 
-destructor TSettingManager.Destroy;
+destructor TSettingCore.Destroy;
 begin
   if not Assigned(FRoot) then
   begin
@@ -266,7 +273,7 @@ begin
   inherited;
 end;
 
-function TSettingManager.GetCount: Integer;
+function TSettingCore.GetCount: Integer;
 begin
   FLock.Enter;
   try
@@ -276,17 +283,17 @@ begin
   end;
 end;
 
-function TSettingManager.GetItem(APath: String): IDispatch;
+function TSettingCore.GetItem(APath: String): IDispatch;
 begin
   Result := _Read_GetItemByPath(APath) as IDispatch;
 end;
 
-function TSettingManager.GetObject: Cardinal;
+function TSettingCore.GetObject: Cardinal;
 begin
   Result := Cardinal(FSetting);
 end;
 
-function TSettingManager.GetType: Integer;
+function TSettingCore.GetType: Integer;
 begin
   FLock.Enter;
   try
@@ -296,7 +303,7 @@ begin
   end;
 end;
 
-function TSettingManager.GetValue: WideString;
+function TSettingCore.GetValue: WideString;
 begin
   FLock.Enter;
   try
@@ -306,7 +313,7 @@ begin
   end;
 end;
 
-function TSettingManager.GetValueByPath(APath, ADefault: WideString): WideString;
+function TSettingCore.GetValueByPath(APath, ADefault: WideString): WideString;
 begin
   FLock.Enter;
   try
@@ -316,7 +323,7 @@ begin
   end;
 end;
 
-function TSettingManager.IsDirty: Boolean;
+function TSettingCore.IsDirty: Boolean;
 begin
   FLock.Enter;
   try
@@ -329,17 +336,17 @@ begin
   end;
 end;
 
-function TSettingManager.WrapItem(AJson: TQJson): TSettingManager;
+function TSettingCore.WrapItem(AJson: TQJson): TSettingCore;
 begin
   if not Assigned(AJson) then
     Result := nil
   else if Assigned(FRoot) then
-    Result := TSettingManager.Create(FRoot, AJson)
+    Result := TSettingCore.Create(FRoot, AJson)
   else
-    Result := TSettingManager.Create(Self, AJson);
+    Result := TSettingCore.Create(Self, AJson);
 end;
 
-function TSettingManager._Read_GetItem(AIndex: Integer): ISetting;
+function TSettingCore._Read_GetItem(AIndex: Integer): ISetting;
 begin
   FLock.Enter;
   try
@@ -349,7 +356,7 @@ begin
   end;
 end;
 
-function TSettingManager._Read_GetItemByPath(APath: WideString): ISetting;
+function TSettingCore._Read_GetItemByPath(APath: WideString): ISetting;
 begin
   FLock.Enter;
   try
@@ -359,17 +366,17 @@ begin
   end;
 end;
 
-function TSettingManager._Manager_GetItem(AIndex: Integer): ISettingManager;
+function TSettingCore._Manager_GetItem(AIndex: Integer): ISettingManager;
 begin
   Result := _Read_GetItem(AIndex) as ISettingManager;
 end;
 
-function TSettingManager._Manager_GetItemByPath(APath: WideString): ISettingManager;
+function TSettingCore._Manager_GetItemByPath(APath: WideString): ISettingManager;
 begin
   Result := _Read_GetItemByPath(APath) as ISettingManager;
 end;
 
-procedure TSettingManager.Save;
+procedure TSettingCore.Save;
 begin
   FLock.Enter;
   try
@@ -388,7 +395,7 @@ begin
   end;
 end;
 
-procedure TSettingManager.SetDirty;
+procedure TSettingCore.SetDirty;
 begin
   if Assigned(FRoot) then
     FRoot.SetDirty
@@ -396,7 +403,7 @@ begin
     FIsDirty := True;
 end;
 
-procedure TSettingManager.SetValue(AValue: WideString);
+procedure TSettingCore.SetValue(AValue: WideString);
 begin
   FLock.Enter;
   try
@@ -412,7 +419,7 @@ begin
   end;
 end;
 
-procedure TSettingManager.SetValueByPath(APath, AValue: WideString);
+procedure TSettingCore.SetValueByPath(APath, AValue: WideString);
 var
   json: TQJson;
 begin
@@ -431,7 +438,7 @@ begin
   end;
 end;
 
-function TSettingManager.RegistCallBack(ACallBack: ICallBack): Pointer;
+function TSettingCore.RegistCallBack(ACallBack: ICallBack): Pointer;
 begin
   FLock.Enter;
   try
@@ -441,7 +448,7 @@ begin
   end;
 end;
 
-procedure TSettingManager.UnRegistCallBack(AID: Pointer);
+procedure TSettingCore.UnRegistCallBack(AID: Pointer);
 begin
   FLock.Enter;
   try
@@ -451,13 +458,20 @@ begin
   end;
 end;
 
-{ TModule }
+{ TSync }
+
+procedure TSync.WndProc(var AMessage: TMessage);
+begin
+  inherited;
+end;
+
+{ TService }
 
 constructor TService.Create(ATrayIcon: TObject);
 begin
-  FLog := TLogManager.Create;
+  FLog := TLogCore.Create;
   FMessageLoop := TMessageLoop.Create;
-  FSetting := TSettingManager.Create(nil, nil);
+  FSetting := TSettingCore.Create(nil, nil);
   FTrayIcon := ATrayIcon;
 end;
 

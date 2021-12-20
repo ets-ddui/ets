@@ -123,8 +123,6 @@ begin
 end;
 
 procedure TFmMain.FormClose(ASender: TObject; var AAction: TCloseAction);
-var
-  ps: TPinStyle;
 begin
   //1.0 ÊÍ·Å×Ó´°¿Ú
   FreeAndNil(FFrames);

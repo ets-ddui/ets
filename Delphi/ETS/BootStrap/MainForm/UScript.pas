@@ -20,12 +20,17 @@ uses
   Windows, Classes, SysUtils, ActiveX, Variants, UDUICore, UFrameBase, UInterface;
 
 type
+  TOnETSAfterNotify = procedure(ANotifyType: String) of object;
   TFrmScriptFrame = class(TFrameBase)
     procedure FrameBaseInit(AParent: IParent; AIndex: Integer);
   private
     FScript: IScript;
+    FOnETSAfterNotify: TOnETSAfterNotify;
+    procedure DoAfterNotify(ANotifyType: TNotifyType);
+    procedure SetOnETSAfterNotify(const AValue: TOnETSAfterNotify);
   published
     property AcceptDropFiles;
+    property OnETSAfterNotify: TOnETSAfterNotify read FOnETSAfterNotify write SetOnETSAfterNotify;
   end;
 
 implementation
@@ -34,6 +39,14 @@ uses
   Controls, TypInfo, qjson, UModuleBase, UDispatchWrapper, UDUIUtils, UDUIForm, UTool;
 
 {$R *.dfm}
+
+procedure TFrmScriptFrame.DoAfterNotify(ANotifyType: TNotifyType);
+const
+  CName: array[TNotifyType] of String = ('ntActive', 'ntDeActive', 'ntResize', 'ntIdle', 'ntToggle');
+begin
+  if Assigned(FOnETSAfterNotify) then
+    FOnETSAfterNotify(CName[ANotifyType]);
+end;
 
 procedure TFrmScriptFrame.FrameBaseInit(AParent: IParent; AIndex: Integer);
   function getScript(AScriptName: String): IScript;
@@ -78,6 +91,12 @@ begin
     FScript.RunCode(Format('var __main__ = Require("%s"); __main__.Init();', [js.Value]))
   else if jsConfig.HasChild('Source', js) then
     FScript.RunCode(js.Value);
+end;
+
+procedure TFrmScriptFrame.SetOnETSAfterNotify(const AValue: TOnETSAfterNotify);
+begin
+  OnAfterNotify := DoAfterNotify;
+  FOnETSAfterNotify := AValue;
 end;
 
 //GetFrame

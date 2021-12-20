@@ -254,6 +254,17 @@ begin
         FForm.SetBounds(FRect.Left, FRect.Top, FRect.Right - FRect.Left, FRect.Bottom - FRect.Top);
       end;
     end;
+    ntToggle:
+    begin
+      Visible := not Visible;
+      if Visible then
+      begin
+        {$IFDEF DESIGNTIME}
+        {$ELSE}
+        DUIParent := GetParam.FParent;
+        {$ENDIF}
+      end;
+    end;
     ntDeActive:
     begin
       if Parent <> FForm then
