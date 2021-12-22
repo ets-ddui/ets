@@ -36,7 +36,6 @@
     <DCCReference Include="vcldb.dcp" />
     <DCCReference Include="MainForm\UChild.pas" />
     <DCCReference Include="MainForm\UForm.pas" />
-    <DCCReference Include="MainForm\ULogManager.pas" />
     <DCCReference Include="MainForm\UMessageConst.pas" />
     <DCCReference Include="MainForm\UScript.pas" />
     <DCCReference Include="MainForm\USettingManager.pas" />

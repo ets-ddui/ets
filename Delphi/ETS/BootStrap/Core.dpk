@@ -39,7 +39,6 @@ contains
   UChild in 'MainForm\UChild.pas',
   UForm in 'MainForm\UForm.pas',
   UScript in 'MainForm\UScript.pas',
-  ULogManager in 'MainForm\ULogManager.pas',
   UMessageConst in 'MainForm\UMessageConst.pas',
   USettingManager in 'MainForm\USettingManager.pas',
   UAppInit in 'Module\UAppInit.pas',

@@ -18,59 +18,27 @@ unit UService;
 
 interface
 
-uses
-  UInterface;
-
-type
-  {$IFDEF LAZARUS}
-  {$M+}
-  {$ELSE}
-  {$METHODINFO ON}
-  {$ENDIF}
-  TService = class
-  strict private
-    FLog, FMessageLoop, FSetting: IDispatch;
-    FTrayIcon: TObject;
-  public
-    constructor Create(ATrayIcon: TObject); reintroduce;
-  published
-    function Log: IDispatch;
-    function MessageLoop: IDispatch;
-    function Setting: IDispatch;
-    function TrayIcon: IDispatch;
-  end;
-  {$IFDEF LAZARUS}
-  {$M-}
-  {$ELSE}
-  {$METHODINFO OFF}
-  {$ENDIF}
-
+function CreateService(ATrayIcon: TObject): TObject;
 procedure CoreInit;
 
 implementation
 
 uses
-  Forms, Classes, SyncObjs, SysUtils, Controls, Messages,
-  qjson, UAppInit, UModuleBase, UMessageConst;
+  Windows, Forms, Classes, SyncObjs, SysUtils, Controls, Messages,
+  qjson, UAppInit, UModuleBase, UMessageConst, UInterface, UBindEvent;
 
 type
-  TLogCore = class(TModuleBase, ILog, ILogManager)
-  private
+  TLogList = class
+  strict private
     FLock: TCriticalSection;
     FValue: TList;
-    FCallBack: TCallBackList;
-  public //只将ILog开放为IDispatch接口
-    { ILog实现 }
-    procedure AddLog(AMessage: WideString); stdcall;
   private
-    { ILogManager实现 }
-    procedure Clear; stdcall;
-    function GetCount: Integer; stdcall;
-    function GetLog(AIndex: Integer): WideString; stdcall;
-    function RegistCallBack(ACallBack: ICallBack): Pointer; stdcall;
-    procedure UnRegistCallBack(AID: Pointer); stdcall;
+    procedure AddLog(AMessage: WideString);
+    procedure Clear;
+    function GetCount: Integer;
+    function GetLog(AIndex: Integer): WideString;
   public
-    constructor Create; override;
+    constructor Create; reintroduce;
     destructor Destroy; override;
   end;
 
@@ -114,18 +82,69 @@ type
     destructor Destroy; override;
   end;
 
+  TService = class;
+
   {$METHODINFO ON}
+  TLog = class(TModuleBase)
+  strict private
+    FService: TService;
+  public
+    constructor Create(AService: TService); reintroduce;
+  public
+    procedure AddLog(AMessage: WideString);
+  end;
+
+  TLogManager = class(TModuleBase)
+  strict private
+    FService: TService;
+    FLock: TCriticalSection;
+    FCallBack: TStringList;
+  private
+    procedure DoCallBack(AMessage: WideString);
+  public
+    constructor Create(AService: TService); reintroduce;
+    destructor Destroy; override;
+  public
+    procedure Clear;
+    function GetCount: Integer;
+    function GetLog(AIndex: Integer): WideString;
+    function RegistCallBack(ACallBack: IDispatch): Integer;
+    procedure UnRegistCallBack(AID: Integer);
+  end;
+
   TMessageLoop = class(TModuleBase)
   public
     procedure Execute;
   end;
+
+  TService = class
+  strict private
+    FMessageLoop, FSetting: IDispatch;
+    FLog: TLog;
+    FLogManager: TLogManager;
+    FLogList: TLogList;
+    FTrayIcon: TObject;
+    FSync: TWinControl;
+    FLastMessage: Integer;
+    procedure DoCallBack(var AMessage: TMessage);
+  private
+    procedure CallBack(AMessage: Integer);
+    property LogList: TLogList read FLogList;
+  public
+    constructor Create(ATrayIcon: TObject); reintroduce;
+    destructor Destroy; override;
+  public
+    function Log: IDispatch;
+    function LogManager: IDispatch;
+    function MessageLoop: IDispatch;
+    function Setting: IDispatch;
+    function TrayIcon: IDispatch;
+  end;
   {$METHODINFO OFF}
 
-  //TService可在多线程环境下使用，通过消息循环来保证线程安全
-  TSync = class(TWinControl)
-  protected
-    procedure WndProc(var AMessage: TMessage); override;
-  end;
+const
+  LOG_ADD = CM_BASE - 1000;
+  LOG_CLEAR = CM_BASE - 1001;
 
 { TLogCore }
 
@@ -135,44 +154,37 @@ type
   end;
   PLogItem = ^TLogItem;
 
-constructor TLogCore.Create;
+constructor TLogList.Create;
 begin
-  inherited;
-
   FValue := TList.Create;
-  FCallBack := TCallBackList.Create;
   FLock := TCriticalSection.Create;
 end;
 
-destructor TLogCore.Destroy;
+destructor TLogList.Destroy;
 begin
   Clear;
 
   FreeAndNil(FValue);
-  FreeAndNil(FCallBack);
   FreeAndNil(FLock);
 
   inherited;
 end;
 
-procedure TLogCore.AddLog(AMessage: WideString);
+procedure TLogList.AddLog(AMessage: WideString);
 var
   pli: PLogItem;
-  iIndex: Integer;
 begin
   FLock.Enter;
   try
     New(pli);
     pli^.FMessage := AMessage;
-    iIndex := FValue.Add(pli);
-
-    FCallBack.CallBack(SM_LOG_ADD, 0, iIndex);
+    FValue.Add(pli);
   finally
     FLock.Leave;
   end;
 end;
 
-procedure TLogCore.Clear;
+procedure TLogList.Clear;
 var
   i: Integer;
 begin
@@ -181,13 +193,12 @@ begin
     for i := FValue.Count - 1 downto 0 do
       Dispose(FValue[i]);
     FValue.Clear;
-    FCallBack.CallBack(SM_LOG_CLEAR, 0, 0);
   finally
     FLock.Leave;
   end;
 end;
 
-function TLogCore.GetCount: Integer;
+function TLogList.GetCount: Integer;
 begin
   FLock.Enter;
   try
@@ -197,7 +208,7 @@ begin
   end;
 end;
 
-function TLogCore.GetLog(AIndex: Integer): WideString;
+function TLogList.GetLog(AIndex: Integer): WideString;
 begin
   FLock.Enter;
   try
@@ -207,21 +218,130 @@ begin
   end;
 end;
 
-function TLogCore.RegistCallBack(ACallBack: ICallBack): Pointer;
+{ TLog }
+
+constructor TLog.Create(AService: TService);
+begin
+  FService := AService;
+end;
+
+procedure TLog.AddLog(AMessage: WideString);
+begin
+  FService.LogList.AddLog(AMessage);
+  FService.CallBack(LOG_ADD);
+end;
+
+{ TLogManager }
+
+type
+  TOnCallBack = procedure (AMessage: WideString) of object;
+  TCallBack = class(TComponent)
+  private
+    FOnCallBack: TOnCallBack;
+  published
+    property OnCallBack: TOnCallBack read FOnCallBack write FOnCallBack;
+  end;
+
+constructor TLogManager.Create(AService: TService);
+begin
+  FService := AService;
+  FLock := TCriticalSection.Create;
+  FCallBack := TStringList.Create;
+end;
+
+destructor TLogManager.Destroy;
+var
+  i: Integer;
+begin
+  for i := FCallBack.Count - 1 downto 0 do
+    FCallBack.Objects[i].Free;
+  FreeAndNil(FCallBack);
+
+  FreeAndNil(FLock);
+
+  inherited;
+end;
+
+procedure TLogManager.Clear;
+begin
+  FService.LogList.Clear;
+  FService.CallBack(LOG_CLEAR);
+end;
+
+procedure TLogManager.DoCallBack(AMessage: WideString);
+var
+  i: Integer;
+  obj: TCallBack;
+begin
+  i := 0;
+  while True do
+  begin
+    FLock.Enter;
+    try
+      if i >= FCallBack.Count then
+        Exit;
+
+      obj := TCallBack(FCallBack.Objects[i]);
+    finally
+      FLock.Leave;
+    end;
+
+    if Assigned(obj) and Assigned(obj.OnCallBack) then
+    begin
+      obj.OnCallBack(AMessage);
+    end;
+
+    Inc(i);
+  end;
+end;
+
+function TLogManager.GetCount: Integer;
+begin
+  Result := FService.LogList.GetCount;
+end;
+
+function TLogManager.GetLog(AIndex: Integer): WideString;
+begin
+  Result := FService.LogList.GetLog(AIndex);
+end;
+
+function TLogManager.RegistCallBack(ACallBack: IDispatch): Integer;
+var
+  obj: TCallBack;
 begin
   FLock.Enter;
   try
-    Result := FCallBack.Add(ACallBack);
+    obj := TCallBack.Create(nil);
+    if not TBindEvent.Create(obj, 'OnCallBack', ACallBack).Valid then
+    begin
+      Result := -1;
+      FreeAndNil(obj);
+      Exit;
+    end;
+
+    for Result := FCallBack.Count - 1 downto 0 do
+      if not Assigned(FCallBack.Objects[Result]) then
+      begin
+        FCallBack.Objects[Result] := obj;
+        Exit;
+      end;
+
+    Result:= FCallBack.Count;
+    FCallBack.AddObject('', obj);
   finally
     FLock.Leave;
   end;
 end;
 
-procedure TLogCore.UnRegistCallBack(AID: Pointer);
+procedure TLogManager.UnRegistCallBack(AID: Integer);
 begin
   FLock.Enter;
   try
-    FCallBack.Delete(AID);
+    if (AID < 0) or (AID >= FCallBack.Count) then
+      Exit;
+
+    FCallBack.Objects[AID].Free;
+    FCallBack.Objects[AID] := nil;
   finally
     FLock.Leave;
   end;
@@ -458,26 +578,83 @@ begin
   Application.ProcessMessages;
 end;
 
-{ TSync }
-
-procedure TSync.WndProc(var AMessage: TMessage);
-begin
-  inherited;
-end;
-
 { TService }
 
 constructor TService.Create(ATrayIcon: TObject);
 begin
-  FLog := TLogCore.Create;
+  FSync := TWinControl.Create(nil);
+  FSync.WindowProc := DoCallBack;
+  FLogList := TLogList.Create;
+
+  //TService内部以对象的形式管理FLog、FLogManager，但以接口形式对外暴露接口
+  //为防止引用计数归零导致对象被释放，这里将引用计数加1
+  //析构时使用FreeAndNil释放对象
+  FLog := TLog.Create(Self);
+  IInterface(FLog)._AddRef;
+  FLogManager := TLogManager.Create(Self);
+  IInterface(FLogManager)._AddRef;
+
   FMessageLoop := TMessageLoop.Create;
   FSetting := TSettingCore.Create(nil, nil);
   FTrayIcon := ATrayIcon;
+
+  FLastMessage := 0;
+end;
+
+destructor TService.Destroy;
+begin
+  FreeAndNil(FLog);
+  FreeAndNil(FLogManager);
+  FreeAndNil(FLogList);
+  FreeAndNil(FSync);
+
+  inherited;
+end;
+
+procedure TService.DoCallBack(var AMessage: TMessage);
+begin
+  InterlockedExchange(FLastMessage, 0);
+
+  case AMessage.Msg of
+    LOG_ADD:
+    begin
+      FLogManager.DoCallBack('LOG_ADD');
+    end;
+    LOG_CLEAR:
+    begin
+      FLogManager.DoCallBack('LOG_CLEAR');
+    end;  
+  end;
+end;
+
+procedure TService.CallBack(AMessage: Integer);
+var
+  msg: TMessage;
+begin
+  if InterlockedExchange(FLastMessage, AMessage) = AMessage then
+    Exit;
+
+  if GetCurrentThreadID = MainThreadID then
+  begin
+    FillChar(msg, SizeOf(msg), 0);
+    msg.Msg := AMessage;
+
+    DoCallBack(msg);
+  end
+  else
+  begin
+    PostMessage(FSync.Handle, AMessage, 0, 0);
+  end;
 end;
 
 function TService.Log: IDispatch;
 begin
   Result := FLog;
+end;
+
+function TService.LogManager: IDispatch;
+begin
+  Result := FLogManager;
 end;
 
 function TService.MessageLoop: IDispatch;
@@ -493,6 +670,11 @@ end;
 function TService.TrayIcon: IDispatch;
 begin
   Result := WrapperObject(FTrayIcon, False);
+end;
+
+function CreateService(ATrayIcon: TObject): TObject;
+begin
+  Result := TService.Create(ATrayIcon);
 end;
 
 procedure CoreInit;

@@ -20,9 +20,6 @@ uses
   Windows, Classes, Controls, SysUtils, UDUICore;
 
 type
-  TPinStyle = (psNone, psLeft, psTop, psRight, psBottom, psClose);
-  TMessageType = (mtAddLog, mtGetValue); //通过消息循环保证线程安全性，通过此类型标识不同的业务处理逻辑
-
   IInterfaceNoRefCount = Pointer; //不带引用计数的IInterface接口(利用了将接口强转成Pointer类型，不会触发引用计数功能的特性)
 
   ICallBack = interface(IInterface)
@@ -110,20 +107,6 @@ type
     procedure RegFrame(AFrame: IDispatch); stdcall;
     procedure RunModule(AFileName, AEntryFunction: WideString); stdcall;
     procedure RunCode(ACode: WideString); stdcall;
-  end;
-
-  ILog = interface(IInterface)
-    ['{85E7F4BA-3CB0-422C-A5A9-51A1D0989E23}']
-    procedure AddLog(AMessage: WideString); stdcall;
-  end;
-
-  ILogManager = interface(IInterface)
-    ['{48E2D872-5612-438F-9C98-FAE01B6DF5B5}']
-    procedure Clear; stdcall;
-    function GetCount: Integer; stdcall;
-    function GetLog(AIndex: Integer): WideString; stdcall;
-    function RegistCallBack(ACallBack: ICallBack): Pointer; stdcall;
-    procedure UnRegistCallBack(AID: Pointer); stdcall;
   end;
 
   ISetting = interface(IInterface)

@@ -57,7 +57,7 @@ implementation
 
 uses
   IniFiles, Math, StrUtils, Variants, ActiveX, TypInfo, qjson, qstring,
-  UFrameBase, UChild, USettingManager, ULogManager, UTool, ULibraryManager,
+  UFrameBase, UChild, USettingManager, UTool, ULibraryManager,
   UAppInit, UService, UDUIShape, UDUIUtils, UScript;
 
 {$R *.dfm}
@@ -150,7 +150,7 @@ begin
 
   FTrayIconService := TTrayIconService.Create(nil);
 
-  SetManager(TManager.Create(nil, TService.Create(FTrayIconService)));
+  SetManager(TManager.Create(nil, CreateService(FTrayIconService)));
 end;
 
 procedure TFmMain.FormShow(Sender: TObject);
