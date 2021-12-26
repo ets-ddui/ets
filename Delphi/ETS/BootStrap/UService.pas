@@ -222,6 +222,8 @@ end;
 
 constructor TLog.Create(AService: TService);
 begin
+  inherited Create;
+
   FService := AService;
 end;
 
@@ -244,6 +246,8 @@ type
 
 constructor TLogManager.Create(AService: TService);
 begin
+  inherited Create;
+
   FService := AService;
   FLock := TCriticalSection.Create;
   FCallBack := TStringList.Create;
