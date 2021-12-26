@@ -10,6 +10,7 @@ interface IEtsForScript : IUnknown
 {
     [] HRESULT FileExists([in] BSTR p_sFileName, [out,retval] VARIANT_BOOL* p_bResult);
     [] HRESULT GetFrame([in] BSTR p_sPathName, [out,retval] IDispatch** p_itfResult);
+    [] HRESULT GetService([in] BSTR p_sServiceName, [out,retval] IDispatch** p_itfResult);
     [] HRESULT GetSetting([in] BSTR p_sName, [out,retval] BSTR* p_sResult);
     [] HRESULT GetStop([out,retval] VARIANT_BOOL* p_bResult);
     [] HRESULT GetTicketCount([out,retval] LONG* p_iResult);

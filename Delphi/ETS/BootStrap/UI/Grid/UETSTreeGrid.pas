@@ -34,6 +34,8 @@ type
   public
     function AddChild(ACaption: String; AFirst: Boolean): TDUITreeNode;
     procedure Clear;
+    function GetCell(AColIndex: Integer): String;
+    procedure SetCell(AColIndex: Integer; AValue: String);
     function GetItems(AIndex: Integer): TDUITreeNode;
   published
     property Caption;
@@ -86,6 +88,35 @@ end;
 procedure TETSTreeNode.Clear;
 begin
   inherited;
+end;
+
+function TETSTreeNode.GetCell(AColIndex: Integer): String;
+var
+  tg: TDUITreeGrid;
+begin
+  Result := '';
+  tg := GetGrid;
+  if not Assigned(tg) then
+    Exit;
+
+  if (AColIndex < 0) or (AColIndex >= tg.Columns.Count) then
+    Exit;
+
+  Result := tg.Cells[tg.Columns[AColIndex], Self];
+end;
+
+procedure TETSTreeNode.SetCell(AColIndex: Integer; AValue: String);
+var
+  tg: TDUITreeGrid;
+begin
+  tg := GetGrid;
+  if not Assigned(tg) then
+    Exit;
+
+  if (AColIndex < 0) or (AColIndex >= tg.Columns.Count) then
+    Exit;
+
+  tg.Cells[tg.Columns[AColIndex], Self] := AValue;
 end;
 
 function TETSTreeNode.GetItems(AIndex: Integer): TDUITreeNode;

@@ -20,7 +20,7 @@ var g_Frame = {
                             "__property__": {
                                 "Picture": {
                                     "__property__": {
-                                        "SkinName": "SYSTEM[开启1,开启2]"
+                                        "SkinName": "SYSTEM[清除1,清除2]"
                                     }
                                 },
                                 "Width": 16,
@@ -58,6 +58,16 @@ var g_Frame = {
     ]
 };
 
+var g_LogManager = undefined;
+var g_iCallBack = -1;
+
+function DoCallBack(p_This, p_sMessage) {
+    if (!g_LogManager) return;
+
+    var tnRoot = GetFrame("").FindChild("tgLog").RootNode;
+    var tnItem = tnRoot.AddChild(tnRoot.ChildCount, false);
+}
+
 function Init() {
     CreateFrame("", g_Frame);
 
@@ -65,8 +75,15 @@ function Init() {
     frmMain.Bind("OnETSAfterNotify", function (p_This, p_NotifyType) {
         if ("ntToggle" != p_NotifyType) return;
 
-        var frmMain = GetFrame("");
-        frmMain.Align = "alBottom";
-        frmMain.Height = 200;
+        p_This.Align = "alBottom";
+        p_This.Height = 200;
+
+        if (p_This.Visible) {
+            g_LogManager = Ets.GetService('LogManager');
+            g_iCallBack = g_LogManager.RegistCallBack(DoCallBack);
+        } else if (g_LogManager) {
+            g_LogManager.UnRegistCallBack(g_iCallBack);
+            g_LogManager = undefined;
+        }
     });
 }

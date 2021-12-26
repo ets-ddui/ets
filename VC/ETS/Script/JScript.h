@@ -415,6 +415,35 @@ namespace ets
                     }
                 }
 
+                STDMETHOD(GetService)(BSTR p_sServiceName, IDispatch** p_itfResult)
+                {
+                    if (nullptr == p_itfResult)
+                    {
+                        return E_POINTER;
+                    }
+
+                    CComVariant vResult;
+                    HRESULT hRes = vcl4c::itf::CManager::GetManager()->GetService(CComBSTR(p_sServiceName), &vResult);
+                    if (FAILED(hRes))
+                    {
+                        return hRes;
+                    }
+
+                    if (VT_DISPATCH != vResult.vt)
+                    {
+                        hRes = vResult.ChangeType(VT_DISPATCH);
+                        if (FAILED(hRes))
+                        {
+                            return hRes;
+                        }
+                    }
+
+                    *p_itfResult = vResult.pdispVal;
+                    (*p_itfResult)->AddRef();
+
+                    return S_OK;
+                }
+
                 STDMETHOD(GetSetting)(BSTR p_sName, BSTR* p_sResult)
                 {
                     CComVariant v;

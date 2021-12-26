@@ -82,9 +82,9 @@ type
     destructor Destroy; override;
   end;
 
+  {$METHODINFO ON}
   TService = class;
 
-  {$METHODINFO ON}
   TLog = class(TModuleBase)
   strict private
     FService: TService;
