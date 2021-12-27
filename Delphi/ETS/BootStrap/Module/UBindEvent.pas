@@ -182,6 +182,11 @@ begin
         parArray[iJs].vt := VT_BSTR;
         cache.Assign(parArray[iJs], String(GetParam(AContext, iRtti, iCount)));
       end
+      else if 0 = CompareText(strParamType, 'WideString') then
+      begin
+        parArray[iJs].vt := VT_BSTR;
+        parArray[iJs].bstrVal := PWideChar(GetParam(AContext, iRtti, iCount));
+      end
       else
       begin
         WriteView('(TBindEvent)无法识别的参数(%d)类型(%s)', [iRtti, strParamType]);

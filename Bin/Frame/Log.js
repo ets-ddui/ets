@@ -28,7 +28,7 @@ var g_Frame = {
                             }
                         },
                         "OnClick": function () {
-                            ShowLog("脚本窗口事件测试");
+                            if (g_LogManager) g_LogManager.Clear;
                         }
                     }
                 }
@@ -60,12 +60,24 @@ var g_Frame = {
 
 var g_LogManager = undefined;
 var g_iCallBack = -1;
+var g_iLastCount = 0;
 
 function DoCallBack(p_This, p_sMessage) {
     if (!g_LogManager) return;
 
     var tnRoot = GetFrame("").FindChild("tgLog").RootNode;
-    var tnItem = tnRoot.AddChild(tnRoot.ChildCount, false);
+
+    if (p_sMessage == "LOG_CLEAR") {
+        tnRoot.Clear;
+        g_iLastCount = 0;
+    } else {
+        var iCount = g_LogManager.Count;
+        for (var i = g_iLastCount; i < iCount; ++i) {
+            var tnItem = tnRoot.AddChild(i + 1, false);
+            tnItem.SetCell(2, g_LogManager.GetLog(i));
+        }
+        g_iLastCount = iCount;
+    }
 }
 
 function Init() {
@@ -75,15 +87,16 @@ function Init() {
     frmMain.Bind("OnETSAfterNotify", function (p_This, p_NotifyType) {
         if ("ntToggle" != p_NotifyType) return;
 
-        p_This.Align = "alBottom";
-        p_This.Height = 200;
-
         if (p_This.Visible) {
+            p_This.Align = "alBottom";
+            p_This.Height = 200;
+
             g_LogManager = Ets.GetService('LogManager');
             g_iCallBack = g_LogManager.RegistCallBack(DoCallBack);
         } else if (g_LogManager) {
             g_LogManager.UnRegistCallBack(g_iCallBack);
             g_LogManager = undefined;
+            g_iLastCount = 0;
         }
     });
 }

@@ -92,31 +92,37 @@ end;
 
 function TETSTreeNode.GetCell(AColIndex: Integer): String;
 var
-  tg: TDUITreeGrid;
+  tg: TETSTreeGrid;
 begin
   Result := '';
-  tg := GetGrid;
+  tg := GetGrid as TETSTreeGrid;
   if not Assigned(tg) then
     Exit;
 
-  if (AColIndex < 0) or (AColIndex >= tg.Columns.Count) then
+  if (AColIndex < 0) or (AColIndex > tg.Columns.Count) then
     Exit;
 
-  Result := tg.Cells[tg.Columns[AColIndex], Self];
+  if AColIndex = 0 then
+    Result := tg.Cells[TDUITreeColumn(tg.First(rctCol).FIndex), Self]
+  else
+    Result := tg.Cells[tg.Columns[AColIndex - 1], Self];
 end;
 
 procedure TETSTreeNode.SetCell(AColIndex: Integer; AValue: String);
 var
-  tg: TDUITreeGrid;
+  tg: TETSTreeGrid;
 begin
-  tg := GetGrid;
+  tg := GetGrid as TETSTreeGrid;
   if not Assigned(tg) then
     Exit;
 
-  if (AColIndex < 0) or (AColIndex >= tg.Columns.Count) then
+  if (AColIndex < 0) or (AColIndex > tg.Columns.Count) then
     Exit;
 
-  tg.Cells[tg.Columns[AColIndex], Self] := AValue;
+  if AColIndex = 0 then
+    tg.Cells[TDUITreeColumn(tg.First(rctCol).FIndex), Self] := AValue
+  else
+    tg.Cells[tg.Columns[AColIndex - 1], Self] := AValue;
 end;
 
 function TETSTreeNode.GetItems(AIndex: Integer): TDUITreeNode;

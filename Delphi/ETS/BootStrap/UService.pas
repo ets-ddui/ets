@@ -99,6 +99,7 @@ type
     FService: TService;
     FLock: TCriticalSection;
     FCallBack: TStringList;
+    function GetCount: Integer;
   private
     procedure DoCallBack(AMessage: WideString);
   public
@@ -106,10 +107,11 @@ type
     destructor Destroy; override;
   public
     procedure Clear;
-    function GetCount: Integer;
     function GetLog(AIndex: Integer): WideString;
     function RegistCallBack(ACallBack: IDispatch): Integer;
     procedure UnRegistCallBack(AID: Integer);
+  published
+    property Count: Integer read GetCount;
   end;
 
   TMessageLoop = class(TModuleBase)
@@ -124,7 +126,7 @@ type
     FLogManager: TLogManager;
     FLogList: TLogList;
     FTrayIcon: TObject;
-    FSync: TWinControl;
+    FSync: HWND;
     FLastMessage: Integer;
     procedure DoCallBack(var AMessage: TMessage);
   private
@@ -586,8 +588,7 @@ end;
 
 constructor TService.Create(ATrayIcon: TObject);
 begin
-  FSync := TWinControl.Create(nil);
-  FSync.WindowProc := DoCallBack;
+  FSync := Classes.AllocateHWnd(DoCallBack);
   FLogList := TLogList.Create;
 
   //TService内部以对象的形式管理FLog、FLogManager，但以接口形式对外暴露接口
@@ -610,7 +611,8 @@ begin
   FreeAndNil(FLog);
   FreeAndNil(FLogManager);
   FreeAndNil(FLogList);
-  FreeAndNil(FSync);
+  Classes.DeallocateHWnd(FSync);
+  FSync := 0;
 
   inherited;
 end;
@@ -647,7 +649,7 @@ begin
   end
   else
   begin
-    PostMessage(FSync.Handle, AMessage, 0, 0);
+    PostMessage(FSync, AMessage, 0, 0);
   end;
 end;
 
