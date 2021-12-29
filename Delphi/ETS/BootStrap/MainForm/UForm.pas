@@ -57,7 +57,7 @@ implementation
 
 uses
   IniFiles, Math, StrUtils, Variants, ActiveX, TypInfo, qjson, qstring,
-  UFrameBase, UChild, USettingManager, UTool, ULibraryManager,
+  UFrameBase, UChild, UTool, ULibraryManager,
   UAppInit, UService, UDUIShape, UDUIUtils, UScript;
 
 {$R *.dfm}

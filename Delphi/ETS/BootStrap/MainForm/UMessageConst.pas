@@ -22,9 +22,6 @@ uses
 const
   CM_IDLE = CM_BASE - 1;
 
-const
-  SM_SETTING_CHANGED = CM_BASE - 1002;
-
 implementation
 
 end.

@@ -22,11 +22,6 @@ uses
 type
   IInterfaceNoRefCount = Pointer; //不带引用计数的IInterface接口(利用了将接口强转成Pointer类型，不会触发引用计数功能的特性)
 
-  ICallBack = interface(IInterface)
-    ['{B02C1A8D-1B17-4930-867C-7F0734FD3F69}']
-    function CallBack(AMessage, AWParam, ALParam: Cardinal): HRESULT; stdcall;
-  end;
-
   //Delphi的属性与C++不兼容(返回值作为函数的第一个参数传入，后面跟接口对象地址，以及函数入参)
   //因此，将C++和Delphi的接口做分离
   //IManager用于与C++等外部接口的对接
@@ -109,33 +104,6 @@ type
     procedure RunCode(ACode: WideString); stdcall;
   end;
 
-  ISetting = interface(IInterface)
-    ['{ADAECDD6-224F-4EFA-B659-4E6BBF37171C}']
-    function GetCount: Integer; stdcall;
-    function GetItem(AIndex: Integer): ISetting; stdcall;
-    function GetItemByPath(APath: WideString): ISetting; stdcall;
-    function GetType: Integer; stdcall;
-    function GetValue: WideString; stdcall;
-    function GetValueByPath(APath: WideString; ADefault: WideString): WideString; stdcall;
-  end;
-
-  ISettingManager = interface(IInterface)
-    ['{CE98D149-D5A9-48CF-B2A1-8C79A979FC55}']
-    function GetCount: Integer; stdcall;
-    function GetItem(AIndex: Integer): ISettingManager; stdcall;
-    function GetItemByPath(APath: WideString): ISettingManager; stdcall;
-    function GetObject: Cardinal; stdcall;
-    function GetType: Integer; stdcall;
-    function GetValue: WideString; stdcall;
-    function GetValueByPath(APath: WideString; ADefault: WideString): WideString; stdcall;
-    procedure SetValue(AValue: WideString); stdcall;
-    procedure SetValueByPath(APath: WideString; AValue: WideString); stdcall;
-    function IsDirty: Boolean; stdcall;
-    procedure Save; stdcall;
-    function RegistCallBack(ACallBack: ICallBack): Pointer; stdcall;
-    procedure UnRegistCallBack(AID: Pointer); stdcall;
-  end;
-
   ITrayIconEvent = interface(IInterface)
     ['{6DD7167E-F02D-4F90-B0A3-3B650493ECED}']
     procedure DoClick(AID, ASubID: Integer);
@@ -163,18 +131,6 @@ type
     function QueryInterface(const AIID: TGUID; out AResult): HResult; override; stdcall;
     function _AddRef: Integer; stdcall;
     function _Release: Integer; stdcall;
-  end;
-
-  TCallBackList = class
-  private
-    FList: TList;
-  public
-    constructor Create;
-    destructor Destroy; override;
-    function Add(ACallBack: ICallBack): Pointer;
-    procedure Delete(AID: Pointer);
-    procedure Clear;
-    function CallBack(AMessage, AWParam, ALParam: Cardinal): HRESULT;
   end;
 
   function GetManager: IManager;
@@ -261,81 +217,6 @@ end;
 function TInterfacedTest._Release: Integer;
 begin
   Result := inherited _Release;
-end;
-
-{ TCallBackList }
-
-type
-  TCallBackItem = record
-    FResult: HRESULT;
-    FCallBack: ICallBack;
-  end;
-  PCallBackItem = ^TCallBackItem;
-
-function TCallBackList.Add(ACallBack: ICallBack): Pointer;
-var
-  pcbi: PCallBackItem;
-begin
-  New(pcbi);
-  pcbi^.FResult := S_OK;
-  pcbi^.FCallBack := ACallBack;
-  FList.Add(pcbi);
-
-  Result := pcbi;
-end;
-
-function TCallBackList.CallBack(AMessage, AWParam, ALParam: Cardinal): HRESULT;
-var
-  i: Integer;
-  pcbi: PCallBackItem;
-begin
-  Result := S_OK;
-
-  for i := 0 to FList.Count - 1 do
-  begin
-    pcbi := FList[i];
-    pcbi^.FResult := pcbi^.FCallBack.CallBack(AMessage, AWParam, ALParam);
-    if Failed(pcbi^.FResult) then
-      Result := pcbi^.FResult;
-  end;
-end;
-
-procedure TCallBackList.Clear;
-var
-  i: Integer;
-  pcbi: PCallBackItem;
-begin
-  for i := FList.Count - 1 downto 0 do
-  begin
-    pcbi := FList[i];
-    Dispose(pcbi);
-  end;
-  FList.Clear;
-end;
-
-constructor TCallBackList.Create;
-begin
-  FList := TList.Create;
-end;
-
-procedure TCallBackList.Delete(AID: Pointer);
-var
-  i: Integer;
-begin
-  i := FList.IndexOf(AID);
-  if i < 0 then
-    Exit;
-
-  Dispose(PCallBackItem(AID));
-  FList.Delete(i);
-end;
-
-destructor TCallBackList.Destroy;
-begin
-  Clear;
-  FreeAndNil(FList);
-
-  inherited;
 end;
 
 initialization

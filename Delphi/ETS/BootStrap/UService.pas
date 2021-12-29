@@ -25,7 +25,7 @@ implementation
 
 uses
   Windows, Forms, Classes, SyncObjs, SysUtils, Controls, Messages,
-  qjson, UAppInit, UModuleBase, UMessageConst, UInterface, UBindEvent;
+  qjson, UAppInit, UModuleBase, UInterface, UBindEvent;
 
 type
   TLogList = class
@@ -39,46 +39,6 @@ type
     function GetLog(AIndex: Integer): WideString;
   public
     constructor Create; reintroduce;
-    destructor Destroy; override;
-  end;
-
-  TSettingCore = class(TModuleBase, ISetting, ISettingManager)
-  private
-    FLock: TCriticalSection;
-    FIsDirty: Boolean;
-    FSetting: TQJson;
-    FRoot: TSettingCore;
-    FCallBack: TCallBackList;
-    procedure SetDirty;
-    function WrapItem(AJson: TQJson): TSettingCore;
-  private
-    { ISetting实现 }
-    function _Read_GetItem(AIndex: Integer): ISetting; stdcall;
-    function _Read_GetItemByPath(APath: WideString): ISetting; stdcall;
-    function ISetting.GetItem = _Read_GetItem;
-    function ISetting.GetItemByPath = _Read_GetItemByPath;
-  public //IDispatch接口
-    function GetCount: Integer; stdcall;
-    function GetType: Integer; stdcall;
-    function GetValue: WideString; stdcall;
-    function GetValueByPath(APath: WideString; ADefault: WideString): WideString; stdcall;
-
-    function GetItem(APath: String): IDispatch;
-  private
-    { ISettingManager实现 }
-    function _Manager_GetItem(AIndex: Integer): ISettingManager; stdcall;
-    function _Manager_GetItemByPath(APath: WideString): ISettingManager; stdcall;
-    function ISettingManager.GetItem = _Manager_GetItem;
-    function ISettingManager.GetItemByPath = _Manager_GetItemByPath;
-    function GetObject: Cardinal; stdcall;
-    procedure SetValue(AValue: WideString); stdcall;
-    procedure SetValueByPath(APath: WideString; AValue: WideString); stdcall;
-    function IsDirty: Boolean; stdcall;
-    procedure Save; stdcall;
-    function RegistCallBack(ACallBack: ICallBack): Pointer; stdcall;
-    procedure UnRegistCallBack(AID: Pointer); stdcall;
-  public
-    constructor Create(ARoot: TSettingCore; ASetting: TQJson); reintroduce;
     destructor Destroy; override;
   end;
 
@@ -101,7 +61,7 @@ type
     FCallBack: TStringList;
     function GetCount: Integer;
   private
-    procedure DoCallBack(AMessage: WideString);
+    procedure DoCallBack(AMessage: String);
   public
     constructor Create(AService: TService); reintroduce;
     destructor Destroy; override;
@@ -112,6 +72,37 @@ type
     procedure UnRegistCallBack(AID: Integer);
   published
     property Count: Integer read GetCount;
+  end;
+
+  TSettingManager = class(TModuleBase)
+  private
+    FLock: TCriticalSection;
+    FIsDirty: Boolean;
+    FSetting: TQJson;
+    FRoot: TSettingManager;
+    FCallBack: TStringList;
+    procedure SetDirty;
+  private
+    procedure SetValue(AValue: WideString); stdcall;
+    procedure SetValueByPath(APath: WideString; AValue: WideString); stdcall;
+    function IsDirty: Boolean; stdcall;
+    procedure Save; stdcall;
+  public
+    constructor Create(ARoot: TSettingManager; ASetting: TQJson); reintroduce;
+    destructor Destroy; override;
+  public
+    function GetCount: Integer;
+    function GetType: Integer;
+    function GetValue: WideString;
+    function GetValueByPath(APath: WideString; ADefault: WideString): WideString;
+    function GetItem(APath: String): IDispatch;
+    function RegistCallBack(ACallBack: IDispatch): Integer;
+    procedure UnRegistCallBack(AID: Integer);
+  end;
+
+  TSetting = class(TSettingManager)
+  private
+  public
   end;
 
   TMessageLoop = class(TModuleBase)
@@ -147,6 +138,7 @@ type
 const
   LOG_ADD = CM_BASE - 1000;
   LOG_CLEAR = CM_BASE - 1001;
+  SETTING_CHANGED = CM_BASE - 1002;
 
 { TLogCore }
 
@@ -238,7 +230,7 @@ end;
 { TLogManager }
 
 type
-  TOnCallBack = procedure (AMessage: WideString) of object;
+  TOnCallBack = procedure (AMessage: String) of object;
   TCallBack = class(TComponent)
   private
     FOnCallBack: TOnCallBack;
@@ -274,7 +266,7 @@ begin
   FService.CallBack(LOG_CLEAR);
 end;
 
-procedure TLogManager.DoCallBack(AMessage: WideString);
+procedure TLogManager.DoCallBack(AMessage: String);
 var
   i: Integer;
   obj: TCallBack;
@@ -353,12 +345,12 @@ begin
   end;
 end;
 
-{ TSettingCore }
+{ TSettingManager }
 
 const
   CConfFile: String = '.\Config\ETS.json';
 
-constructor TSettingCore.Create(ARoot: TSettingCore; ASetting: TQJson);
+constructor TSettingManager.Create(ARoot: TSettingManager; ASetting: TQJson);
 begin
   inherited Create;
 
@@ -368,7 +360,7 @@ begin
     FRoot := nil;
     FSetting := TQJson.Create;
     FSetting.LoadFromFile(CConfFile);
-    FCallBack := TCallBackList.Create;
+    FCallBack := TStringList.Create;
     FLock := TCriticalSection.Create;
   end
   else
@@ -380,19 +372,25 @@ begin
   end;
 end;
 
-destructor TSettingCore.Destroy;
+destructor TSettingManager.Destroy;
+var
+  i: Integer;
 begin
   if not Assigned(FRoot) then
   begin
     FreeAndNil(FSetting);
+
+    for i := FCallBack.Count - 1 downto 0 do
+      FCallBack.Objects[i].Free;
     FreeAndNil(FCallBack);
+
     FreeAndNil(FLock);
   end;
 
   inherited;
 end;
 
-function TSettingCore.GetCount: Integer;
+function TSettingManager.GetCount: Integer;
 begin
   FLock.Enter;
   try
@@ -402,17 +400,26 @@ begin
   end;
 end;
 
-function TSettingCore.GetItem(APath: String): IDispatch;
+function TSettingManager.GetItem(APath: String): IDispatch;
+var
+  js: TQJson;
 begin
-  Result := _Read_GetItemByPath(APath) as IDispatch;
+  FLock.Enter;
+  try
+    js := FSetting.ItemByPath(APath);
+
+    if not Assigned(js) then
+      Result := nil
+    else if Assigned(FRoot) then
+      Result := TSettingManager.Create(FRoot, js)
+    else
+      Result := TSettingManager.Create(Self, js);
+  finally
+    FLock.Leave;
+  end;
 end;
 
-function TSettingCore.GetObject: Cardinal;
-begin
-  Result := Cardinal(FSetting);
-end;
-
-function TSettingCore.GetType: Integer;
+function TSettingManager.GetType: Integer;
 begin
   FLock.Enter;
   try
@@ -422,7 +429,7 @@ begin
   end;
 end;
 
-function TSettingCore.GetValue: WideString;
+function TSettingManager.GetValue: WideString;
 begin
   FLock.Enter;
   try
@@ -432,7 +439,7 @@ begin
   end;
 end;
 
-function TSettingCore.GetValueByPath(APath, ADefault: WideString): WideString;
+function TSettingManager.GetValueByPath(APath, ADefault: WideString): WideString;
 begin
   FLock.Enter;
   try
@@ -442,7 +449,7 @@ begin
   end;
 end;
 
-function TSettingCore.IsDirty: Boolean;
+function TSettingManager.IsDirty: Boolean;
 begin
   FLock.Enter;
   try
@@ -455,47 +462,7 @@ begin
   end;
 end;
 
-function TSettingCore.WrapItem(AJson: TQJson): TSettingCore;
-begin
-  if not Assigned(AJson) then
-    Result := nil
-  else if Assigned(FRoot) then
-    Result := TSettingCore.Create(FRoot, AJson)
-  else
-    Result := TSettingCore.Create(Self, AJson);
-end;
-
-function TSettingCore._Read_GetItem(AIndex: Integer): ISetting;
-begin
-  FLock.Enter;
-  try
-    Result := WrapItem(FSetting[AIndex]);
-  finally
-    FLock.Leave;
-  end;
-end;
-
-function TSettingCore._Read_GetItemByPath(APath: WideString): ISetting;
-begin
-  FLock.Enter;
-  try
-    Result := WrapItem(FSetting.ItemByPath(APath));
-  finally
-    FLock.Leave;
-  end;
-end;
-
-function TSettingCore._Manager_GetItem(AIndex: Integer): ISettingManager;
-begin
-  Result := _Read_GetItem(AIndex) as ISettingManager;
-end;
-
-function TSettingCore._Manager_GetItemByPath(APath: WideString): ISettingManager;
-begin
-  Result := _Read_GetItemByPath(APath) as ISettingManager;
-end;
-
-procedure TSettingCore.Save;
+procedure TSettingManager.Save;
 begin
   FLock.Enter;
   try
@@ -514,7 +481,7 @@ begin
   end;
 end;
 
-procedure TSettingCore.SetDirty;
+procedure TSettingManager.SetDirty;
 begin
   if Assigned(FRoot) then
     FRoot.SetDirty
@@ -522,7 +489,7 @@ begin
     FIsDirty := True;
 end;
 
-procedure TSettingCore.SetValue(AValue: WideString);
+procedure TSettingManager.SetValue(AValue: WideString);
 begin
   FLock.Enter;
   try
@@ -531,14 +498,14 @@ begin
       FSetting.Value := AValue;
       SetDirty;
 
-      FCallBack.CallBack(SM_SETTING_CHANGED, 0, Integer(FSetting));
+      //FCallBack.CallBack(SETTING_CHANGED, 0, Integer(FSetting));
     end;
   finally
     FLock.Leave;
   end;
 end;
 
-procedure TSettingCore.SetValueByPath(APath, AValue: WideString);
+procedure TSettingManager.SetValueByPath(APath, AValue: WideString);
 var
   json: TQJson;
 begin
@@ -550,32 +517,56 @@ begin
       json.Value := AValue;
       SetDirty;
 
-      FCallBack.CallBack(SM_SETTING_CHANGED, 0, Integer(json));
+      //FCallBack.CallBack(SETTING_CHANGED, 0, Integer(json));
     end;
   finally
     FLock.Leave;
   end;
 end;
 
-function TSettingCore.RegistCallBack(ACallBack: ICallBack): Pointer;
+function TSettingManager.RegistCallBack(ACallBack: IDispatch): Integer;
+var
+  obj: TCallBack;
 begin
   FLock.Enter;
   try
-    Result := FCallBack.Add(ACallBack);
+    obj := TCallBack.Create(nil);
+    if not TBindEvent.Create(obj, 'OnCallBack', ACallBack).Valid then
+    begin
+      Result := -1;
+      FreeAndNil(obj);
+      Exit;
+    end;
+
+    for Result := FCallBack.Count - 1 downto 0 do
+      if not Assigned(FCallBack.Objects[Result]) then
+      begin
+        FCallBack.Objects[Result] := obj;
+        Exit;
+      end;
+
+    Result:= FCallBack.Count;
+    FCallBack.AddObject('', obj);
   finally
     FLock.Leave;
   end;
 end;
 
-procedure TSettingCore.UnRegistCallBack(AID: Pointer);
+procedure TSettingManager.UnRegistCallBack(AID: Integer);
 begin
   FLock.Enter;
   try
-    FCallBack.Delete(AID);
+    if (AID < 0) or (AID >= FCallBack.Count) then
+      Exit;
+
+    FCallBack.Objects[AID].Free;
+    FCallBack.Objects[AID] := nil;
   finally
     FLock.Leave;
   end;
 end;
+
+{ TSetting }
 
 { TMessageLoop }
 
@@ -600,7 +591,7 @@ begin
   IInterface(FLogManager)._AddRef;
 
   FMessageLoop := TMessageLoop.Create;
-  FSetting := TSettingCore.Create(nil, nil);
+  FSetting := TSettingManager.Create(nil, nil);
   FTrayIcon := ATrayIcon;
 
   FLastMessage := 0;
@@ -611,6 +602,7 @@ begin
   FreeAndNil(FLog);
   FreeAndNil(FLogManager);
   FreeAndNil(FLogList);
+
   Classes.DeallocateHWnd(FSync);
   FSync := 0;
 

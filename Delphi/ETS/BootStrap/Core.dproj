@@ -38,7 +38,6 @@
     <DCCReference Include="MainForm\UForm.pas" />
     <DCCReference Include="MainForm\UMessageConst.pas" />
     <DCCReference Include="MainForm\UScript.pas" />
-    <DCCReference Include="MainForm\USettingManager.pas" />
     <DCCReference Include="Module\UAppInit.pas" />
     <DCCReference Include="Module\UBindEvent.pas" />
     <DCCReference Include="Module\UDispatchWrapper.pas" />
