@@ -28,6 +28,18 @@ uses
   qjson, UAppInit, UModuleBase, UInterface, UBindEvent;
 
 type
+  TCallBack = class
+  strict private
+    FLock: TCriticalSection;
+    FCallBack: TStringList;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    function Add(ACallBack: IDispatch): Integer;
+    procedure Delete(AID: Integer);
+    procedure Execute(AMessage: String);
+  end;
+
   TLogList = class
   strict private
     FLock: TCriticalSection;
@@ -38,8 +50,24 @@ type
     function GetCount: Integer;
     function GetLog(AIndex: Integer): WideString;
   public
-    constructor Create; reintroduce;
+    constructor Create;
     destructor Destroy; override;
+  end;
+
+  TSettingCore = class
+  strict private
+    FLock: TCriticalSection;
+    FCallBack: TCallBack;
+    FConfig: TQJson;
+    FDirty: Boolean;
+  public
+    constructor Create;
+    destructor Destroy; override;
+    procedure Enter;
+    procedure Leave;
+    property CallBack: TCallBack read FCallBack;
+    property Config: TQJson read FConfig;
+    property Dirty: Boolean read FDirty write FDirty;
   end;
 
   {$METHODINFO ON}
@@ -57,8 +85,7 @@ type
   TLogManager = class(TModuleBase)
   strict private
     FService: TService;
-    FLock: TCriticalSection;
-    FCallBack: TStringList;
+    FCallBack: TCallBack;
     function GetCount: Integer;
   private
     procedure DoCallBack(AMessage: String);
@@ -74,35 +101,34 @@ type
     property Count: Integer read GetCount;
   end;
 
-  TSettingManager = class(TModuleBase)
+  TSetting = class(TModuleBase)
   private
-    FLock: TCriticalSection;
-    FIsDirty: Boolean;
-    FSetting: TQJson;
-    FRoot: TSettingManager;
-    FCallBack: TStringList;
-    procedure SetDirty;
-  private
-    procedure SetValue(AValue: WideString); stdcall;
-    procedure SetValueByPath(APath: WideString; AValue: WideString); stdcall;
-    function IsDirty: Boolean; stdcall;
-    procedure Save; stdcall;
-  public
-    constructor Create(ARoot: TSettingManager; ASetting: TQJson); reintroduce;
-    destructor Destroy; override;
-  public
+    FService: TService;
+    FNode: TQJson;
     function GetCount: Integer;
-    function GetType: Integer;
-    function GetValue: WideString;
-    function GetValueByPath(APath: WideString; ADefault: WideString): WideString;
+    function GetValue: String;
+  public
+    constructor Create(AService: TService; ANode: TQJson = nil); reintroduce;
+  public
     function GetItem(APath: String): IDispatch;
-    function RegistCallBack(ACallBack: IDispatch): Integer;
-    procedure UnRegistCallBack(AID: Integer);
+    function GetValueByPath(APath, ADefault: String): String;
+  published
+    property Count: Integer read GetCount;
+    property Value: String read GetValue;
   end;
 
-  TSetting = class(TSettingManager)
-  private
+  TSettingManager = class(TSetting)
+  strict private
+    function GetValue: String;
+    procedure SetValue(AValue: String);
   public
+    function GetItem(APath: String): IDispatch;
+    procedure Save;
+    procedure SetValueByPath(APath, AValue: String);
+    function RegistCallBack(ACallBack: IDispatch): Integer;
+    procedure UnRegistCallBack(AID: Integer);
+  published
+    property Value: String read GetValue write SetValue;
   end;
 
   TMessageLoop = class(TModuleBase)
@@ -112,10 +138,11 @@ type
 
   TService = class
   strict private
-    FMessageLoop, FSetting: IDispatch;
     FLog: TLog;
     FLogManager: TLogManager;
     FLogList: TLogList;
+    FSettingCore: TSettingCore;
+    FMessageLoop: IDispatch;
     FTrayIcon: TObject;
     FSync: HWND;
     FLastMessage: Integer;
@@ -123,14 +150,16 @@ type
   private
     procedure CallBack(AMessage: Integer);
     property LogList: TLogList read FLogList;
+    property SettingCore: TSettingCore read FSettingCore;
   public
     constructor Create(ATrayIcon: TObject); reintroduce;
     destructor Destroy; override;
   public
     function Log: IDispatch;
     function LogManager: IDispatch;
-    function MessageLoop: IDispatch;
     function Setting: IDispatch;
+    function SettingManager: IDispatch;
+    function MessageLoop: IDispatch;
     function TrayIcon: IDispatch;
   end;
   {$METHODINFO OFF}
@@ -139,6 +168,104 @@ const
   LOG_ADD = CM_BASE - 1000;
   LOG_CLEAR = CM_BASE - 1001;
   SETTING_CHANGED = CM_BASE - 1002;
+
+{ TCallBack }
+
+type
+  TOnCallBack = procedure (AMessage: String) of object;
+  TCallBackItem = class(TComponent)
+  private
+    FOnCallBack: TOnCallBack;
+  published
+    property OnCallBack: TOnCallBack read FOnCallBack write FOnCallBack;
+  end;
+
+constructor TCallBack.Create;
+begin
+  FLock := TCriticalSection.Create;
+  FCallBack := TStringList.Create;
+end;
+
+destructor TCallBack.Destroy;
+var
+  i: Integer;
+begin
+  for i := FCallBack.Count - 1 downto 0 do
+    FCallBack.Objects[i].Free;
+  FreeAndNil(FCallBack);
+  FreeAndNil(FLock);
+
+  inherited;
+end;
+
+function TCallBack.Add(ACallBack: IDispatch): Integer;
+var
+  obj: TCallBackItem;
+begin
+  FLock.Enter;
+  try
+    obj := TCallBackItem.Create(nil);
+    if not TBindEvent.Create(obj, 'OnCallBack', ACallBack).Valid then
+    begin
+      Result := -1;
+      FreeAndNil(obj);
+      Exit;
+    end;
+
+    for Result := FCallBack.Count - 1 downto 0 do
+      if not Assigned(FCallBack.Objects[Result]) then
+      begin
+        FCallBack.Objects[Result] := obj;
+        Exit;
+      end;
+
+    Result:= FCallBack.Count;
+    FCallBack.AddObject('', obj);
+  finally
+    FLock.Leave;
+  end;
+end;
+
+procedure TCallBack.Delete(AID: Integer);
+begin
+  FLock.Enter;
+  try
+    if (AID < 0) or (AID >= FCallBack.Count) then
+      Exit;
+
+    FCallBack.Objects[AID].Free;
+    FCallBack.Objects[AID] := nil;
+  finally
+    FLock.Leave;
+  end;
+end;
+
+procedure TCallBack.Execute(AMessage: String);
+var
+  i: Integer;
+  obj: TCallBackItem;
+begin
+  i := 0;
+  while True do
+  begin
+    FLock.Enter;
+    try
+      if i >= FCallBack.Count then
+        Exit;
+
+      obj := TCallBackItem(FCallBack.Objects[i]);
+    finally
+      FLock.Leave;
+    end;
+
+    if Assigned(obj) and Assigned(obj.OnCallBack) then
+    begin
+      obj.OnCallBack(AMessage);
+    end;
+
+    Inc(i);
+  end;
+end;
 
 { TLogCore }
 
@@ -229,33 +356,17 @@ end;
 
 { TLogManager }
 
-type
-  TOnCallBack = procedure (AMessage: String) of object;
-  TCallBack = class(TComponent)
-  private
-    FOnCallBack: TOnCallBack;
-  published
-    property OnCallBack: TOnCallBack read FOnCallBack write FOnCallBack;
-  end;
-
 constructor TLogManager.Create(AService: TService);
 begin
   inherited Create;
 
   FService := AService;
-  FLock := TCriticalSection.Create;
-  FCallBack := TStringList.Create;
+  FCallBack := TCallBack.Create;
 end;
 
 destructor TLogManager.Destroy;
-var
-  i: Integer;
 begin
-  for i := FCallBack.Count - 1 downto 0 do
-    FCallBack.Objects[i].Free;
   FreeAndNil(FCallBack);
-
-  FreeAndNil(FLock);
 
   inherited;
 end;
@@ -267,30 +378,8 @@ begin
 end;
 
 procedure TLogManager.DoCallBack(AMessage: String);
-var
-  i: Integer;
-  obj: TCallBack;
 begin
-  i := 0;
-  while True do
-  begin
-    FLock.Enter;
-    try
-      if i >= FCallBack.Count then
-        Exit;
-
-      obj := TCallBack(FCallBack.Objects[i]);
-    finally
-      FLock.Leave;
-    end;
-
-    if Assigned(obj) and Assigned(obj.OnCallBack) then
-    begin
-      obj.OnCallBack(AMessage);
-    end;
-
-    Inc(i);
-  end;
+  FCallBack.Execute(AMessage);
 end;
 
 function TLogManager.GetCount: Integer;
@@ -304,269 +393,192 @@ begin
 end;
 
 function TLogManager.RegistCallBack(ACallBack: IDispatch): Integer;
-var
-  obj: TCallBack;
 begin
-  FLock.Enter;
-  try
-    obj := TCallBack.Create(nil);
-    if not TBindEvent.Create(obj, 'OnCallBack', ACallBack).Valid then
-    begin
-      Result := -1;
-      FreeAndNil(obj);
-      Exit;
-    end;
-
-    for Result := FCallBack.Count - 1 downto 0 do
-      if not Assigned(FCallBack.Objects[Result]) then
-      begin
-        FCallBack.Objects[Result] := obj;
-        Exit;
-      end;
-
-    Result:= FCallBack.Count;
-    FCallBack.AddObject('', obj);
-  finally
-    FLock.Leave;
-  end;
+  Result := FCallBack.Add(ACallBack);
 end;
 
 procedure TLogManager.UnRegistCallBack(AID: Integer);
 begin
-  FLock.Enter;
-  try
-    if (AID < 0) or (AID >= FCallBack.Count) then
-      Exit;
+  FCallBack.Delete(AID);
+end;
 
-    FCallBack.Objects[AID].Free;
-    FCallBack.Objects[AID] := nil;
+{ TSettingItem }
+
+const
+  CConfFile: String = '.\Config\ETS.json';
+
+constructor TSettingCore.Create;
+begin
+  inherited Create;
+
+  FDirty := False;
+  FConfig := TQJson.Create;
+  FConfig.LoadFromFile(CConfFile);
+  FCallBack := TCallBack.Create;
+  FLock := TCriticalSection.Create;
+end;
+
+destructor TSettingCore.Destroy;
+begin
+  FreeAndNil(FLock);
+  FreeAndNil(FCallBack);
+  FreeAndNil(FConfig);
+
+  inherited;
+end;
+
+procedure TSettingCore.Enter;
+begin
+  FLock.Enter;
+end;
+
+procedure TSettingCore.Leave;
+begin
+  FLock.Leave;
+end;
+
+{ TSetting }
+
+constructor TSetting.Create(AService: TService; ANode: TQJson);
+begin
+  inherited Create;
+
+  FService := AService;
+  if Assigned(ANode) then
+    FNode := ANode
+  else
+    FNode := FService.SettingCore.Config;
+end;
+
+function TSetting.GetCount: Integer;
+begin
+  FService.SettingCore.Enter;
+  try
+    Result := FNode.Count;
   finally
-    FLock.Leave;
+    FService.SettingCore.Leave;
+  end;
+end;
+
+function TSetting.GetItem(APath: String): IDispatch;
+var
+  js: TQJson;
+begin
+  FService.SettingCore.Enter;
+  try
+    js := FNode.ItemByPath(APath);
+
+    if not Assigned(js) then
+      Result := nil
+    else
+      Result := TSetting.Create(FService, js);
+  finally
+    FService.SettingCore.Leave;
+  end;
+end;
+
+function TSetting.GetValue: String;
+begin
+  FService.SettingCore.Enter;
+  try
+    Result := FNode.Value;
+  finally
+    FService.SettingCore.Leave;
+  end;
+end;
+
+function TSetting.GetValueByPath(APath, ADefault: String): String;
+begin
+  FService.SettingCore.Enter;
+  try
+    Result := FNode.ValueByPath(APath, ADefault);
+  finally
+    FService.SettingCore.Leave;
   end;
 end;
 
 { TSettingManager }
 
-const
-  CConfFile: String = '.\Config\ETS.json';
-
-constructor TSettingManager.Create(ARoot: TSettingManager; ASetting: TQJson);
-begin
-  inherited Create;
-
-  FIsDirty := False;
-  if not Assigned(ARoot) then
-  begin
-    FRoot := nil;
-    FSetting := TQJson.Create;
-    FSetting.LoadFromFile(CConfFile);
-    FCallBack := TStringList.Create;
-    FLock := TCriticalSection.Create;
-  end
-  else
-  begin
-    FRoot := ARoot;
-    FSetting := ASetting;
-    FCallBack := ARoot.FCallBack;
-    FLock := ARoot.FLock;
-  end;
-end;
-
-destructor TSettingManager.Destroy;
-var
-  i: Integer;
-begin
-  if not Assigned(FRoot) then
-  begin
-    FreeAndNil(FSetting);
-
-    for i := FCallBack.Count - 1 downto 0 do
-      FCallBack.Objects[i].Free;
-    FreeAndNil(FCallBack);
-
-    FreeAndNil(FLock);
-  end;
-
-  inherited;
-end;
-
-function TSettingManager.GetCount: Integer;
-begin
-  FLock.Enter;
-  try
-    Result := FSetting.Count;
-  finally
-    FLock.Leave;
-  end;
-end;
-
 function TSettingManager.GetItem(APath: String): IDispatch;
 var
   js: TQJson;
 begin
-  FLock.Enter;
+  FService.SettingCore.Enter;
   try
-    js := FSetting.ItemByPath(APath);
+    js := FNode.ItemByPath(APath);
 
     if not Assigned(js) then
       Result := nil
-    else if Assigned(FRoot) then
-      Result := TSettingManager.Create(FRoot, js)
     else
-      Result := TSettingManager.Create(Self, js);
+      Result := TSettingManager.Create(FService, js);
   finally
-    FLock.Leave;
-  end;
-end;
-
-function TSettingManager.GetType: Integer;
-begin
-  FLock.Enter;
-  try
-    Result := Ord(FSetting.DataType);
-  finally
-    FLock.Leave;
-  end;
-end;
-
-function TSettingManager.GetValue: WideString;
-begin
-  FLock.Enter;
-  try
-    Result := FSetting.Value;
-  finally
-    FLock.Leave;
-  end;
-end;
-
-function TSettingManager.GetValueByPath(APath, ADefault: WideString): WideString;
-begin
-  FLock.Enter;
-  try
-    Result := FSetting.ValueByPath(APath, ADefault);
-  finally
-    FLock.Leave;
-  end;
-end;
-
-function TSettingManager.IsDirty: Boolean;
-begin
-  FLock.Enter;
-  try
-    if Assigned(FRoot) then
-      Result := FRoot.IsDirty
-    else
-      Result := FIsDirty;
-  finally
-    FLock.Leave;
+    FService.SettingCore.Leave;
   end;
 end;
 
 procedure TSettingManager.Save;
 begin
-  FLock.Enter;
+  FService.SettingCore.Enter;
   try
-    if Assigned(FRoot) then
-      FRoot.Save
-    else
-    begin
-      if not FIsDirty then
-        Exit;
+    if not FService.SettingCore.Dirty then
+      Exit;
 
-      FSetting.SaveToFile(CConfFile);
-      FIsDirty := False;
-    end;
+    FService.SettingCore.Config.SaveToFile(CConfFile);
+    FService.SettingCore.Dirty := False;
   finally
-    FLock.Leave;
+    FService.SettingCore.Leave;
   end;
 end;
 
-procedure TSettingManager.SetDirty;
-begin
-  if Assigned(FRoot) then
-    FRoot.SetDirty
-  else
-    FIsDirty := True;
-end;
-
-procedure TSettingManager.SetValue(AValue: WideString);
-begin
-  FLock.Enter;
-  try
-    if FSetting.Value <> AValue then
-    begin
-      FSetting.Value := AValue;
-      SetDirty;
-
-      //FCallBack.CallBack(SETTING_CHANGED, 0, Integer(FSetting));
-    end;
-  finally
-    FLock.Leave;
-  end;
-end;
-
-procedure TSettingManager.SetValueByPath(APath, AValue: WideString);
+procedure TSettingManager.SetValueByPath(APath, AValue: String);
 var
   json: TQJson;
 begin
-  FLock.Enter;
+  FService.SettingCore.Enter;
   try
-    json := FSetting.ItemByPath(APath);
+    json := FNode.ItemByPath(APath);
     if Assigned(json) and (json.Value <> AValue) then
     begin
       json.Value := AValue;
-      SetDirty;
+      FService.SettingCore.Dirty := True;
 
-      //FCallBack.CallBack(SETTING_CHANGED, 0, Integer(json));
+      FService.CallBack(SETTING_CHANGED);
     end;
   finally
-    FLock.Leave;
+    FService.SettingCore.Leave;
+  end;
+end;
+
+function TSettingManager.GetValue: String;
+begin
+  Result := inherited GetValue;
+end;
+
+procedure TSettingManager.SetValue(AValue: String);
+begin
+  FService.SettingCore.Enter;
+  try
+    if FNode.Value <> AValue then
+    begin
+      FNode.Value := AValue;
+      FService.SettingCore.Dirty := True;
+
+      FService.CallBack(SETTING_CHANGED);
+    end;
+  finally
+    FService.SettingCore.Leave;
   end;
 end;
 
 function TSettingManager.RegistCallBack(ACallBack: IDispatch): Integer;
-var
-  obj: TCallBack;
 begin
-  FLock.Enter;
-  try
-    obj := TCallBack.Create(nil);
-    if not TBindEvent.Create(obj, 'OnCallBack', ACallBack).Valid then
-    begin
-      Result := -1;
-      FreeAndNil(obj);
-      Exit;
-    end;
-
-    for Result := FCallBack.Count - 1 downto 0 do
-      if not Assigned(FCallBack.Objects[Result]) then
-      begin
-        FCallBack.Objects[Result] := obj;
-        Exit;
-      end;
-
-    Result:= FCallBack.Count;
-    FCallBack.AddObject('', obj);
-  finally
-    FLock.Leave;
-  end;
+  Result := FService.SettingCore.CallBack.Add(ACallBack);
 end;
 
 procedure TSettingManager.UnRegistCallBack(AID: Integer);
 begin
-  FLock.Enter;
-  try
-    if (AID < 0) or (AID >= FCallBack.Count) then
-      Exit;
-
-    FCallBack.Objects[AID].Free;
-    FCallBack.Objects[AID] := nil;
-  finally
-    FLock.Leave;
-  end;
+  FService.SettingCore.CallBack.Delete(AID);
 end;
-
-{ TSetting }
 
 { TMessageLoop }
 
@@ -590,8 +602,9 @@ begin
   FLogManager := TLogManager.Create(Self);
   IInterface(FLogManager)._AddRef;
 
+  FSettingCore := TSettingCore.Create;
+
   FMessageLoop := TMessageLoop.Create;
-  FSetting := TSettingManager.Create(nil, nil);
   FTrayIcon := ATrayIcon;
 
   FLastMessage := 0;
@@ -602,6 +615,8 @@ begin
   FreeAndNil(FLog);
   FreeAndNil(FLogManager);
   FreeAndNil(FLogList);
+
+  FreeAndNil(FSettingCore);
 
   Classes.DeallocateHWnd(FSync);
   FSync := 0;
@@ -621,6 +636,10 @@ begin
     LOG_CLEAR:
     begin
       FLogManager.DoCallBack('LOG_CLEAR');
+    end;
+    SETTING_CHANGED:
+    begin
+      FSettingCore.CallBack.Execute('SETTING_CHANGED');
     end;  
   end;
 end;
@@ -662,7 +681,12 @@ end;
 
 function TService.Setting: IDispatch;
 begin
-  Result := FSetting;
+  Result := TSetting.Create(Self);
+end;
+
+function TService.SettingManager: IDispatch;
+begin
+  Result := TSettingManager.Create(Self);
 end;
 
 function TService.TrayIcon: IDispatch;
