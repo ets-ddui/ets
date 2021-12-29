@@ -43,15 +43,18 @@ type
   TLogList = class
   strict private
     FLock: TCriticalSection;
+    FCallBack: TCallBack;
     FValue: TList;
-  private
-    procedure AddLog(AMessage: WideString);
-    procedure Clear;
     function GetCount: Integer;
-    function GetLog(AIndex: Integer): WideString;
   public
     constructor Create;
     destructor Destroy; override;
+    procedure DoCallBack(AMessage: String);
+    procedure AddLog(AMessage: WideString);
+    procedure Clear;
+    function GetLog(AIndex: Integer): WideString;
+    property CallBack: TCallBack read FCallBack;
+    property Count: Integer read GetCount;
   end;
 
   TSettingCore = class
@@ -63,11 +66,12 @@ type
   public
     constructor Create;
     destructor Destroy; override;
+    procedure DoCallBack(AMessage: String);
     procedure Enter;
     procedure Leave;
+    procedure Save;
     property CallBack: TCallBack read FCallBack;
     property Config: TQJson read FConfig;
-    property Dirty: Boolean read FDirty write FDirty;
   end;
 
   {$METHODINFO ON}
@@ -85,13 +89,9 @@ type
   TLogManager = class(TModuleBase)
   strict private
     FService: TService;
-    FCallBack: TCallBack;
     function GetCount: Integer;
-  private
-    procedure DoCallBack(AMessage: String);
   public
     constructor Create(AService: TService); reintroduce;
-    destructor Destroy; override;
   public
     procedure Clear;
     function GetLog(AIndex: Integer): WideString;
@@ -138,8 +138,6 @@ type
 
   TService = class
   strict private
-    FLog: TLog;
-    FLogManager: TLogManager;
     FLogList: TLogList;
     FSettingCore: TSettingCore;
     FMessageLoop: IDispatch;
@@ -279,16 +277,23 @@ constructor TLogList.Create;
 begin
   FValue := TList.Create;
   FLock := TCriticalSection.Create;
+  FCallBack := TCallBack.Create;
 end;
 
 destructor TLogList.Destroy;
 begin
   Clear;
 
+  FreeAndNil(FCallBack);
   FreeAndNil(FValue);
   FreeAndNil(FLock);
 
   inherited;
+end;
+
+procedure TLogList.DoCallBack(AMessage: String);
+begin
+  FCallBack.Execute(AMessage);
 end;
 
 procedure TLogList.AddLog(AMessage: WideString);
@@ -361,14 +366,6 @@ begin
   inherited Create;
 
   FService := AService;
-  FCallBack := TCallBack.Create;
-end;
-
-destructor TLogManager.Destroy;
-begin
-  FreeAndNil(FCallBack);
-
-  inherited;
 end;
 
 procedure TLogManager.Clear;
@@ -377,14 +374,9 @@ begin
   FService.CallBack(LOG_CLEAR);
 end;
 
-procedure TLogManager.DoCallBack(AMessage: String);
-begin
-  FCallBack.Execute(AMessage);
-end;
-
 function TLogManager.GetCount: Integer;
 begin
-  Result := FService.LogList.GetCount;
+  Result := FService.LogList.Count;
 end;
 
 function TLogManager.GetLog(AIndex: Integer): WideString;
@@ -394,12 +386,12 @@ end;
 
 function TLogManager.RegistCallBack(ACallBack: IDispatch): Integer;
 begin
-  Result := FCallBack.Add(ACallBack);
+  Result := FService.LogList.CallBack.Add(ACallBack);
 end;
 
 procedure TLogManager.UnRegistCallBack(AID: Integer);
 begin
-  FCallBack.Delete(AID);
+  FService.LogList.CallBack.Delete(AID);
 end;
 
 { TSettingItem }
@@ -427,6 +419,12 @@ begin
   inherited;
 end;
 
+procedure TSettingCore.DoCallBack(AMessage: String);
+begin
+  FDirty := True;
+  FCallBack.Execute(AMessage);
+end;
+
 procedure TSettingCore.Enter;
 begin
   FLock.Enter;
@@ -435,6 +433,20 @@ end;
 procedure TSettingCore.Leave;
 begin
   FLock.Leave;
+end;
+
+procedure TSettingCore.Save;
+begin
+  FLock.Enter;
+  try
+    if not FDirty then
+      Exit;
+
+    FConfig.SaveToFile(CConfFile);
+    FDirty := False;
+  finally
+    FLock.Leave;
+  end;
 end;
 
 { TSetting }
@@ -518,16 +530,7 @@ end;
 
 procedure TSettingManager.Save;
 begin
-  FService.SettingCore.Enter;
-  try
-    if not FService.SettingCore.Dirty then
-      Exit;
-
-    FService.SettingCore.Config.SaveToFile(CConfFile);
-    FService.SettingCore.Dirty := False;
-  finally
-    FService.SettingCore.Leave;
-  end;
+  FService.SettingCore.Save;
 end;
 
 procedure TSettingManager.SetValueByPath(APath, AValue: String);
@@ -540,8 +543,6 @@ begin
     if Assigned(json) and (json.Value <> AValue) then
     begin
       json.Value := AValue;
-      FService.SettingCore.Dirty := True;
-
       FService.CallBack(SETTING_CHANGED);
     end;
   finally
@@ -561,8 +562,6 @@ begin
     if FNode.Value <> AValue then
     begin
       FNode.Value := AValue;
-      FService.SettingCore.Dirty := True;
-
       FService.CallBack(SETTING_CHANGED);
     end;
   finally
@@ -591,31 +590,18 @@ end;
 
 constructor TService.Create(ATrayIcon: TObject);
 begin
-  FSync := Classes.AllocateHWnd(DoCallBack);
   FLogList := TLogList.Create;
-
-  //TService内部以对象的形式管理FLog、FLogManager，但以接口形式对外暴露接口
-  //为防止引用计数归零导致对象被释放，这里将引用计数加1
-  //析构时使用FreeAndNil释放对象
-  FLog := TLog.Create(Self);
-  IInterface(FLog)._AddRef;
-  FLogManager := TLogManager.Create(Self);
-  IInterface(FLogManager)._AddRef;
-
   FSettingCore := TSettingCore.Create;
-
   FMessageLoop := TMessageLoop.Create;
   FTrayIcon := ATrayIcon;
 
+  FSync := Classes.AllocateHWnd(DoCallBack);
   FLastMessage := 0;
 end;
 
 destructor TService.Destroy;
 begin
-  FreeAndNil(FLog);
-  FreeAndNil(FLogManager);
   FreeAndNil(FLogList);
-
   FreeAndNil(FSettingCore);
 
   Classes.DeallocateHWnd(FSync);
@@ -629,18 +615,9 @@ begin
   InterlockedExchange(FLastMessage, 0);
 
   case AMessage.Msg of
-    LOG_ADD:
-    begin
-      FLogManager.DoCallBack('LOG_ADD');
-    end;
-    LOG_CLEAR:
-    begin
-      FLogManager.DoCallBack('LOG_CLEAR');
-    end;
-    SETTING_CHANGED:
-    begin
-      FSettingCore.CallBack.Execute('SETTING_CHANGED');
-    end;  
+    LOG_ADD: FLogList.DoCallBack('LOG_ADD');
+    LOG_CLEAR: FLogList.DoCallBack('LOG_CLEAR');
+    SETTING_CHANGED: FSettingCore.DoCallBack('SETTING_CHANGED');
   end;
 end;
 
@@ -666,12 +643,12 @@ end;
 
 function TService.Log: IDispatch;
 begin
-  Result := FLog;
+  Result := TLog.Create(Self);
 end;
 
 function TService.LogManager: IDispatch;
 begin
-  Result := FLogManager;
+  Result := TLogManager.Create(Self);
 end;
 
 function TService.MessageLoop: IDispatch;
