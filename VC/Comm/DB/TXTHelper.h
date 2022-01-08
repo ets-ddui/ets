@@ -177,23 +177,22 @@ namespace vcl4c
 
                 ClearField();
 
-                if (p_sFormat.empty())
+                //使用第1行的字段长度预生成字段
+                ReadLine(false);
+                if (0 == m_vData.size())
                 {
-                    //外部没有定义字段长度，则以第1行的字段长度为准
-                    ReadLine(false);
-                    if (0 == m_vData.size())
-                    {
-                        return;
-                    }
-
-                    for (unsigned int i = 0; i < m_vData.size(); ++i)
-                    {
-                        AddField(vcl4c::string::Format("%d", i), m_vData[i].size());
-                    }
-
-                    m_thFile.Seek(0);
+                    return;
                 }
-                else
+
+                for (unsigned int i = 0; i < m_vData.size(); ++i)
+                {
+                    AddField(vcl4c::string::Format("%d", i), m_vData[i].size());
+                }
+
+                m_thFile.Seek(0);
+
+                //如果外部自定义了字段长度，则对字段信息进行覆盖
+                if (!p_sFormat.empty())
                 {
                     //根据外部定义的长度解析每个字段
                     std::vector<std::pair<std::string, std::string>> vFormat;

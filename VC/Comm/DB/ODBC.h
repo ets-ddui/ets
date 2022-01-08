@@ -473,9 +473,19 @@ namespace vcl4c
                 char * sTerminator = "";
                 for (unsigned int i = 0; i < bcpRow.GetFieldCount(); ++i)
                 {
-                    if (SUCCEED != bcp_bind(m_hDbc,
-                        reinterpret_cast<BYTE *>(bcpRow.GetAddress(i)), 0, bcpRow.GetField(i).GetSize(),
-                        reinterpret_cast<BYTE *>(sTerminator), 1, SQLCHARACTER, vColid[i]))
+                    RETCODE iRet = SUCCEED;
+                    if (0 > bcpRow.GetField(i).GetSize())
+                    {
+                        iRet = bcp_bind(m_hDbc, nullptr, 0, 0, nullptr, 0, SQLCHARACTER, vColid[i]);
+                    }
+                    else
+                    {
+                        iRet = bcp_bind(m_hDbc,
+                            reinterpret_cast<BYTE *>(bcpRow.GetAddress(i)), 0, bcpRow.GetField(i).GetSize(),
+                            reinterpret_cast<BYTE *>(sTerminator), 1, SQLCHARACTER, vColid[i]);
+                    }
+
+                    if (SUCCEED != iRet)
                     {
                         m_sMessage.push_back(vcl4c::string::Format("bcp_bind(%s, %s)执行失败",
                             sTable.c_str(), bcpRow.GetField(i).GetName().c_str()));
@@ -512,12 +522,17 @@ namespace vcl4c
                     ++iRecordRec;
                     for (unsigned int i = 0; i < bcpRow.GetFieldCount(); ++i)
                     {
+                        if (0 > bcpRow.GetField(i).GetSize())
+                        {
+                            continue;
+                        }
+
                         if (0 <= vRelation[i])
                         {
                             std::string strValue = p_dsData->GetField(vRelation[i]).Get<std::string>();
                             if (!strValue.empty())
                             {
-                                if (bcpRow.GetField(i).GetSize() < strValue.size())
+                                if ((std::string::size_type)bcpRow.GetField(i).GetSize() < strValue.size())
                                 {
                                     m_sMessage.push_back(vcl4c::string::Format("bcp_sendrow(%s)执行失败，数据内容过长，行列号：%d %d(从1开始计数)",
                                         sTable.c_str(), iRecordRec, i + 1));
@@ -561,6 +576,27 @@ namespace vcl4c
                         m_sMessage.push_back(vcl4c::string::Format("bcp_sendrow(%s)执行失败，行号：%d(从1开始计数)",
                             sTable.c_str(), iRecordRec));
                         return SQL_ERROR;
+                    }
+
+                    for (unsigned int i = 0; i < bcpRow.GetFieldCount(); ++i)
+                    {
+                        if (0 <= bcpRow.GetField(i).GetSize())
+                        {
+                            continue;
+                        }
+
+                        if (0 > vRelation[i])
+                        {
+                            bcp_moretext(m_hDbc, 0, nullptr);
+                            continue;
+                        }
+
+                        std::string strValue = p_dsData->GetField(vRelation[i]).Get<std::string>();
+                        if ("" != strValue)
+                        {
+                            bcp_moretext(m_hDbc, strValue.size(), reinterpret_cast<LPCBYTE>(strValue.c_str()));
+                        }
+                        bcp_moretext(m_hDbc, 0, nullptr);
                     }
 
                     p_dsData->Next();

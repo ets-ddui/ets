@@ -56,7 +56,7 @@ namespace vcl4c
                     return m_Parent->m_vFields[m_iIndex].m_iOffset;
                 }
 
-                unsigned int GetSize() const
+                int GetSize() const
                 {
                     return m_Parent->m_vFields[m_iIndex].m_iSize;
                 }
@@ -352,6 +352,27 @@ namespace vcl4c
 
             virtual void DoAddField(const std::string & p_sName, const EFieldType p_iType, const int p_iSize)
             {
+                for (auto it = m_vFields.begin(); it != m_vFields.end(); ++it)
+                {
+                    if (p_sName == it->m_sName)
+                    {
+                        int iAdjust = (p_iSize < 0 ? 0 : p_iSize) - (it->m_iSize < 0 ? 0 : it->m_iSize);
+
+                        it->m_iType = p_iType;
+                        it->m_iSize = p_iSize;
+                        ++it;
+                        if (0 != iAdjust)
+                        {
+                            for (; it != m_vFields.end(); ++it)
+                            {
+                                it->m_iOffset += iAdjust;
+                            }
+                        }
+
+                        return;
+                    }
+                }
+
                 m_vFields.push_back(CField(p_sName, p_iType, GetRecordSize() + sizeof(BYTE), p_iSize));
             }
 
@@ -364,7 +385,7 @@ namespace vcl4c
                 else
                 {
                     const CField & fld = m_vFields.back();
-                    return fld.m_iOffset + fld.m_iSize;
+                    return fld.m_iOffset + (fld.m_iSize < 0 ? 0 : fld.m_iSize);
                 }
             }
 
@@ -426,7 +447,7 @@ namespace vcl4c
                 std::string m_sName;
                 EFieldType m_iType;
                 unsigned int m_iOffset;
-                unsigned int m_iSize;
+                int m_iSize;
             };
 
             std::vector<CField> m_vFields;
