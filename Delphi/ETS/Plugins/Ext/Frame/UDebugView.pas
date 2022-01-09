@@ -23,9 +23,6 @@ uses
   StdCtrls, Messages, UFrameBase, UDUICore, UDUIForm, UDUIWinWrapper, UDUIPanel,
   UDUIButton, UDUIGrid, UDUITreeGrid;
 
-const
-  ETSM_GET_MESSAGE = WM_App + 3000;
-
 type
   TFrmDebugView = class(TFrameBase)
     PnlControls: TDUIPanel;
@@ -37,9 +34,8 @@ type
     procedure FrameBaseInit(AParent: IParent; AIndex: Integer);
     procedure FrameBaseNotify(ANotifyType: TNotifyType; var AResult: Boolean);
   private
-    FThread: TThread;
+    FThread, FMonitor: TThread;
     FQueue: OleVariant;
-    procedure ETSMGetMessage(var AMessage: TMessage); message ETSM_GET_MESSAGE;
     procedure DoTerminate(ASender: TObject);
   end;
 
@@ -61,6 +57,15 @@ type
   public
     constructor Create(AQueue: OleVariant); reintroduce;
     destructor Destroy; override;
+  end;
+
+  TDebugViewMonitor = class(TThread)
+  private
+    FForm: TFrmDebugView;
+  protected
+    procedure Execute; override;
+  public
+    constructor Create(AForm: TFrmDebugView); reintroduce;
   end;
 
 { TDebugViewThread }
@@ -174,6 +179,79 @@ begin
   end;
 end;
 
+{ TDebugViewMonitor }
+
+constructor TDebugViewMonitor.Create(AForm: TFrmDebugView);
+begin
+  inherited Create(True);
+  FForm := AForm;
+end;
+
+procedure TDebugViewMonitor.Execute;
+  procedure addMessage(AProcessID, AMessage: String);
+  var
+    tn: TDUITreeNode;
+  begin
+    tn := FForm.TgData.RootNode.First;
+    while Assigned(tn) do
+    begin
+      if tn.Caption = AProcessID then
+        Break;
+
+      if tn = FForm.TgData.RootNode.Last then
+        tn := nil
+      else
+        tn := tn.Next;
+    end;
+
+    if not Assigned(tn) then
+    begin
+      tn := FForm.TgData.RootNode.AddChild(AProcessID);
+      FForm.TgData.Cells[FForm.TgData.Columns[1], tn] := GetProcessImageNameByID(StrToInt(AProcessID));
+    end;
+
+    tn := tn.AddChild(FormatDateTime('hh:nn:ss.zzz', Now), True);
+    FForm.TgData.Cells[FForm.TgData.Columns[1], tn] := AMessage;
+  end;
+var
+  strProcessID, strMessage: String;
+  que: OleVariant;
+begin
+  que := FForm.FQueue;
+
+  while not Terminated do
+  begin
+    strProcessID := que.GetData;
+    if que.LastError <> 0 then
+      Continue;
+
+    repeat
+      strMessage := que.GetData;
+    until que.LastError = 0;
+
+    GetManager.Lock;
+    try
+      while True do
+      begin
+        addMessage(strProcessID, strMessage);
+
+        if Integer(que.Count) = 0 then
+          Break;
+
+        strProcessID := que.GetData;
+        if que.LastError <> 0 then
+          Continue;
+
+        repeat
+          strMessage := que.GetData;
+        until que.LastError = 0;
+      end;
+    finally
+      GetManager.UnLock;
+    end;
+  end;
+end;
+
 { TFrmDebugView }
 
 procedure TFrmDebugView.DoClick(ASender: TObject);
@@ -188,13 +266,21 @@ begin
     FThread.OnTerminate := DoTerminate;
     FThread.Resume;
 
-    PerformAsync(ETSM_GET_MESSAGE, 0, 0);
+    FMonitor := TDebugViewMonitor.Create(Self);
+    FMonitor.FreeOnTerminate := True;
+    FMonitor.OnTerminate := DoTerminate;
+    FMonitor.Resume;
   end
   else if ASender = BtnStop then //点击停止按钮
   begin
     if Assigned(FThread) then
     begin
       FThread.Terminate;
+    end;
+
+    if Assigned(FMonitor) then
+    begin
+      FMonitor.Terminate;
     end;
   end
   else if ASender = BtnClear then
@@ -205,61 +291,15 @@ end;
 
 procedure TFrmDebugView.DoTerminate(ASender: TObject);
 begin
-  FThread := nil;
-  BtnStart.Enabled := True;
-  BtnStop.Enabled := False;
-end;
+  if FThread = ASender then
+    FThread := nil
+  else if FMonitor = ASender then
+    FMonitor := nil;
 
-procedure TFrmDebugView.ETSMGetMessage(var AMessage: TMessage);
-var
-  strProcessID, strMessage: String;
-  tn: TDUITreeNode;
-begin
-  while Assigned(FThread) or (Integer(FQueue.Count) > 0) do
+  if not Assigned(FThread) and not Assigned(FMonitor) then
   begin
-    if Integer(FQueue.Count) = 0 then
-    begin
-      //TThread.Synchronize机制说明(TThread.OnTerminate就是通过这个机制实现，如果不处理Idle，线程会假死)
-      //1. Synchronize往内部队列SyncList(全局变量)中增加TSyncProc类型的指针变量；
-      //2. 在Application的消息循环中，通过消息WM_NULL或函数Idle读取SyncList中的数据，
-      //   并运行结构中包装的函数(详见全局函数CheckSynchronize的实现)；
-      //从测试结果看，WM_NULL在极特别的情况下才会触发，通过Idle触发的概率更高，
-      //ProcessMessages不会触发Idle(主消息循环调用的HandleMessage会触发)，
-      //因此，这里通过调用DoApplicationIdle来触发Idle的处理，保证DoTerminate正常执行
-      Application.ProcessMessages;
-      {$IFNDEF LAZARUS}
-      Application.DoApplicationIdle;
-      {$ENDIF}
-    end;
-
-    strProcessID := FQueue.GetData;
-    if FQueue.LastError <> 0 then
-      Continue;
-
-    repeat
-      strMessage := FQueue.GetData;
-    until FQueue.LastError = 0;
-
-    tn := TgData.RootNode.First;
-    while Assigned(tn) do
-    begin
-      if tn.Caption = strProcessID then
-        Break;
-
-      if tn = TgData.RootNode.Last then
-        tn := nil
-      else
-        tn := tn.Next;
-    end;
-
-    if not Assigned(tn) then
-    begin
-      tn := TgData.RootNode.AddChild(strProcessID);
-      TgData.Cells[TgData.Columns[1], tn] := GetProcessImageNameByID(StrToInt(strProcessID));
-    end;
-
-    tn := tn.AddChild(FormatDateTime('hh:nn:ss.zzz', Now), True);
-    TgData.Cells[TgData.Columns[1], tn] := strMessage;
+    BtnStart.Enabled := True;
+    BtnStop.Enabled := False;
   end;
 end;
 
@@ -272,7 +312,7 @@ procedure TFrmDebugView.FrameBaseNotify(ANotifyType: TNotifyType; var AResult: B
 begin
   if ANotifyType = ntDeActive then
   begin
-    if Assigned(FThread) then
+    if Assigned(FThread) or Assigned(FMonitor) then
     begin
       AResult := False;
       Exit;
