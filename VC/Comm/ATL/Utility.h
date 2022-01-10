@@ -614,6 +614,12 @@ namespace vcl4c
                     FUNCDESC* fd;
                     if (SUCCEEDED(m_pInfo->GetFuncDesc(i, &fd)))
                     {
+                        std::string str("函数: ");
+
+                        str.append(Format("[%s]", GetFuncKind(fd->funckind).c_str()));
+                        str.append(Format("[%s]", GetInvokeKind(fd->invkind).c_str()));
+                        str.append(Format("[%s]", GetCallConv(fd->callconv).c_str()));
+
                         CComBSTR sName;
 
                         if (SUCCEEDED(m_pInfo->GetDocumentation(fd->memid, &sName, NULL, NULL, NULL)))
@@ -621,17 +627,29 @@ namespace vcl4c
                             USES_CONVERSION_EX;
                             char *s = W2A_EX(sName, sName.Length());
 
-                            WriteView(Format("成员：%d %s", fd->memid, s));
+                            str.append(Format("<%d>%s", fd->memid, s));
                         }
+
+                        str.append("(");
 
                         for (int iInner = 0; iInner < fd->cParams; ++iInner)
                         {
                             ELEMDESC *ed = fd->lprgelemdescParam + iInner;
 
-                            WriteView(Format("入参[%d]：%d(%s)", iInner, ed->tdesc.vt, GetVarTypeName(ed->tdesc.vt).c_str()));
+                            str.append(Format("<%d>%s, ", ed->tdesc.vt, GetVarTypeName(ed->tdesc.vt).c_str()));
                         }
 
-                        WriteView(Format("返回值：%d(%s)", fd->elemdescFunc.tdesc.vt, GetVarTypeName(fd->elemdescFunc.tdesc.vt).c_str()));
+                        if (0 < fd->cParams)
+                        {
+                            str.pop_back();
+                            str.pop_back();
+                        }
+
+                        str.append(")");
+
+                        str.append(Format(": <%d>%s", fd->elemdescFunc.tdesc.vt, GetVarTypeName(fd->elemdescFunc.tdesc.vt).c_str()));
+
+                        WriteView(str);
 
                         m_pInfo->ReleaseFuncDesc(fd);
                     }
@@ -640,68 +658,145 @@ namespace vcl4c
                 m_pInfo->ReleaseTypeAttr(ta);
             }
 
-            const std::string GetVarTypeName(const VARTYPE p_VarType)
+            const std::string GetFuncKind(const FUNCKIND p_Value)
             {
-                static std::map<VARTYPE, std::string> g_VarTypeName;
+                static std::map<FUNCKIND, std::string> g_Map;
 
-                if (g_VarTypeName.empty())
+                if (g_Map.empty())
                 {
-                    g_VarTypeName.insert(std::make_pair(VT_EMPTY, "VT_EMPTY"));
-                    g_VarTypeName.insert(std::make_pair(VT_NULL, "VT_NULL"));
-                    g_VarTypeName.insert(std::make_pair(VT_I2, "VT_I2"));
-                    g_VarTypeName.insert(std::make_pair(VT_I4, "VT_I4"));
-                    g_VarTypeName.insert(std::make_pair(VT_R4, "VT_R4"));
-                    g_VarTypeName.insert(std::make_pair(VT_R8, "VT_R8"));
-                    g_VarTypeName.insert(std::make_pair(VT_CY, "VT_CY"));
-                    g_VarTypeName.insert(std::make_pair(VT_DATE, "VT_DATE"));
-                    g_VarTypeName.insert(std::make_pair(VT_BSTR, "VT_BSTR"));
-                    g_VarTypeName.insert(std::make_pair(VT_DISPATCH, "VT_DISPATCH"));
-                    g_VarTypeName.insert(std::make_pair(VT_ERROR, "VT_ERROR"));
-                    g_VarTypeName.insert(std::make_pair(VT_BOOL, "VT_BOOL"));
-                    g_VarTypeName.insert(std::make_pair(VT_VARIANT, "VT_VARIANT"));
-                    g_VarTypeName.insert(std::make_pair(VT_UNKNOWN, "VT_UNKNOWN"));
-                    g_VarTypeName.insert(std::make_pair(VT_DECIMAL, "VT_DECIMAL"));
-                    g_VarTypeName.insert(std::make_pair(VT_I1, "VT_I1"));
-                    g_VarTypeName.insert(std::make_pair(VT_UI1, "VT_UI1"));
-                    g_VarTypeName.insert(std::make_pair(VT_UI2, "VT_UI2"));
-                    g_VarTypeName.insert(std::make_pair(VT_UI4, "VT_UI4"));
-                    g_VarTypeName.insert(std::make_pair(VT_I8, "VT_I8"));
-                    g_VarTypeName.insert(std::make_pair(VT_UI8, "VT_UI8"));
-                    g_VarTypeName.insert(std::make_pair(VT_INT, "VT_INT"));
-                    g_VarTypeName.insert(std::make_pair(VT_UINT, "VT_UINT"));
-                    g_VarTypeName.insert(std::make_pair(VT_VOID, "VT_VOID"));
-                    g_VarTypeName.insert(std::make_pair(VT_HRESULT, "VT_HRESULT"));
-                    g_VarTypeName.insert(std::make_pair(VT_PTR, "VT_PTR"));
-                    g_VarTypeName.insert(std::make_pair(VT_SAFEARRAY, "VT_SAFEARRAY"));
-                    g_VarTypeName.insert(std::make_pair(VT_CARRAY, "VT_CARRAY"));
-                    g_VarTypeName.insert(std::make_pair(VT_USERDEFINED, "VT_USERDEFINED"));
-                    g_VarTypeName.insert(std::make_pair(VT_LPSTR, "VT_LPSTR"));
-                    g_VarTypeName.insert(std::make_pair(VT_LPWSTR, "VT_LPWSTR"));
-                    g_VarTypeName.insert(std::make_pair(VT_RECORD, "VT_RECORD"));
-                    g_VarTypeName.insert(std::make_pair(VT_INT_PTR, "VT_INT_PTR"));
-                    g_VarTypeName.insert(std::make_pair(VT_UINT_PTR, "VT_UINT_PTR"));
-                    g_VarTypeName.insert(std::make_pair(VT_FILETIME, "VT_FILETIME"));
-                    g_VarTypeName.insert(std::make_pair(VT_BLOB, "VT_BLOB"));
-                    g_VarTypeName.insert(std::make_pair(VT_STREAM, "VT_STREAM"));
-                    g_VarTypeName.insert(std::make_pair(VT_STORAGE, "VT_STORAGE"));
-                    g_VarTypeName.insert(std::make_pair(VT_STREAMED_OBJECT, "VT_STREAMED_OBJECT"));
-                    g_VarTypeName.insert(std::make_pair(VT_STORED_OBJECT, "VT_STORED_OBJECT"));
-                    g_VarTypeName.insert(std::make_pair(VT_BLOB_OBJECT, "VT_BLOB_OBJECT"));
-                    g_VarTypeName.insert(std::make_pair(VT_CF, "VT_CF"));
-                    g_VarTypeName.insert(std::make_pair(VT_CLSID, "VT_CLSID"));
-                    g_VarTypeName.insert(std::make_pair(VT_VERSIONED_STREAM, "VT_VERSIONED_STREAM"));
-                    g_VarTypeName.insert(std::make_pair(VT_BSTR_BLOB, "VT_BSTR_BLOB"));
-                    g_VarTypeName.insert(std::make_pair(VT_VECTOR, "VT_VECTOR"));
-                    g_VarTypeName.insert(std::make_pair(VT_ARRAY, "VT_ARRAY"));
-                    g_VarTypeName.insert(std::make_pair(VT_BYREF, "VT_BYREF"));
-                    g_VarTypeName.insert(std::make_pair(VT_RESERVED, "VT_RESERVED"));
-                    g_VarTypeName.insert(std::make_pair(VT_ILLEGAL, "VT_ILLEGAL"));
-                    g_VarTypeName.insert(std::make_pair(VT_ILLEGALMASKED, "VT_ILLEGALMASKED"));
-                    g_VarTypeName.insert(std::make_pair(VT_TYPEMASK, "VT_TYPEMASK"));
+                    g_Map.insert(std::make_pair(FUNC_VIRTUAL, "FUNC_VIRTUAL"));
+                    g_Map.insert(std::make_pair(FUNC_PUREVIRTUAL, "FUNC_PUREVIRTUAL"));
+                    g_Map.insert(std::make_pair(FUNC_NONVIRTUAL, "FUNC_NONVIRTUAL"));
+                    g_Map.insert(std::make_pair(FUNC_STATIC, "FUNC_STATIC"));
+                    g_Map.insert(std::make_pair(FUNC_DISPATCH, "FUNC_DISPATCH"));
                 }
 
-                std::map<VARTYPE, std::string>::const_iterator it = g_VarTypeName.find(p_VarType);
-                if (g_VarTypeName.end() != it)
+                auto it = g_Map.find(p_Value);
+                if (g_Map.end() != it)
+                {
+                    return it->second;
+                }
+                else
+                {
+                    return "";
+                }
+            }
+
+            const std::string GetInvokeKind(const INVOKEKIND p_Value)
+            {
+                static std::map<INVOKEKIND, std::string> g_Map;
+
+                if (g_Map.empty())
+                {
+                    g_Map.insert(std::make_pair(INVOKE_FUNC, "INVOKE_FUNC"));
+                    g_Map.insert(std::make_pair(INVOKE_PROPERTYGET, "INVOKE_PROPERTYGET"));
+                    g_Map.insert(std::make_pair(INVOKE_PROPERTYPUT, "INVOKE_PROPERTYPUT"));
+                    g_Map.insert(std::make_pair(INVOKE_PROPERTYPUTREF, "INVOKE_PROPERTYPUTREF"));
+                }
+
+                auto it = g_Map.find(p_Value);
+                if (g_Map.end() != it)
+                {
+                    return it->second;
+                }
+                else
+                {
+                    return "";
+                }
+            }
+
+            const std::string GetCallConv(const CALLCONV p_Value)
+            {
+                static std::map<CALLCONV, std::string> g_Map;
+
+                if (g_Map.empty())
+                {
+                    g_Map.insert(std::make_pair(CC_FASTCALL, "CC_FASTCALL"));
+                    g_Map.insert(std::make_pair(CC_CDECL, "CC_CDECL"));
+                    g_Map.insert(std::make_pair(CC_MSCPASCAL, "CC_MSCPASCAL"));
+                    g_Map.insert(std::make_pair(CC_PASCAL, "CC_PASCAL"));
+                    g_Map.insert(std::make_pair(CC_MACPASCAL, "CC_MACPASCAL"));
+                    g_Map.insert(std::make_pair(CC_STDCALL, "CC_STDCALL"));
+                    g_Map.insert(std::make_pair(CC_FPFASTCALL, "CC_FPFASTCALL"));
+                    g_Map.insert(std::make_pair(CC_SYSCALL, "CC_SYSCALL"));
+                    g_Map.insert(std::make_pair(CC_MPWCDECL, "CC_MPWCDECL"));
+                    g_Map.insert(std::make_pair(CC_MPWPASCAL, "CC_MPWPASCAL"));
+                    g_Map.insert(std::make_pair(CC_MAX, "CC_MAX"));
+                }
+
+                auto it = g_Map.find(p_Value);
+                if (g_Map.end() != it)
+                {
+                    return it->second;
+                }
+                else
+                {
+                    return "";
+                }
+            }
+
+            const std::string GetVarTypeName(const VARTYPE p_Value)
+            {
+                static std::map<VARTYPE, std::string> g_Map;
+
+                if (g_Map.empty())
+                {
+                    g_Map.insert(std::make_pair(VT_EMPTY, "VT_EMPTY"));
+                    g_Map.insert(std::make_pair(VT_NULL, "VT_NULL"));
+                    g_Map.insert(std::make_pair(VT_I2, "VT_I2"));
+                    g_Map.insert(std::make_pair(VT_I4, "VT_I4"));
+                    g_Map.insert(std::make_pair(VT_R4, "VT_R4"));
+                    g_Map.insert(std::make_pair(VT_R8, "VT_R8"));
+                    g_Map.insert(std::make_pair(VT_CY, "VT_CY"));
+                    g_Map.insert(std::make_pair(VT_DATE, "VT_DATE"));
+                    g_Map.insert(std::make_pair(VT_BSTR, "VT_BSTR"));
+                    g_Map.insert(std::make_pair(VT_DISPATCH, "VT_DISPATCH"));
+                    g_Map.insert(std::make_pair(VT_ERROR, "VT_ERROR"));
+                    g_Map.insert(std::make_pair(VT_BOOL, "VT_BOOL"));
+                    g_Map.insert(std::make_pair(VT_VARIANT, "VT_VARIANT"));
+                    g_Map.insert(std::make_pair(VT_UNKNOWN, "VT_UNKNOWN"));
+                    g_Map.insert(std::make_pair(VT_DECIMAL, "VT_DECIMAL"));
+                    g_Map.insert(std::make_pair(VT_I1, "VT_I1"));
+                    g_Map.insert(std::make_pair(VT_UI1, "VT_UI1"));
+                    g_Map.insert(std::make_pair(VT_UI2, "VT_UI2"));
+                    g_Map.insert(std::make_pair(VT_UI4, "VT_UI4"));
+                    g_Map.insert(std::make_pair(VT_I8, "VT_I8"));
+                    g_Map.insert(std::make_pair(VT_UI8, "VT_UI8"));
+                    g_Map.insert(std::make_pair(VT_INT, "VT_INT"));
+                    g_Map.insert(std::make_pair(VT_UINT, "VT_UINT"));
+                    g_Map.insert(std::make_pair(VT_VOID, "VT_VOID"));
+                    g_Map.insert(std::make_pair(VT_HRESULT, "VT_HRESULT"));
+                    g_Map.insert(std::make_pair(VT_PTR, "VT_PTR"));
+                    g_Map.insert(std::make_pair(VT_SAFEARRAY, "VT_SAFEARRAY"));
+                    g_Map.insert(std::make_pair(VT_CARRAY, "VT_CARRAY"));
+                    g_Map.insert(std::make_pair(VT_USERDEFINED, "VT_USERDEFINED"));
+                    g_Map.insert(std::make_pair(VT_LPSTR, "VT_LPSTR"));
+                    g_Map.insert(std::make_pair(VT_LPWSTR, "VT_LPWSTR"));
+                    g_Map.insert(std::make_pair(VT_RECORD, "VT_RECORD"));
+                    g_Map.insert(std::make_pair(VT_INT_PTR, "VT_INT_PTR"));
+                    g_Map.insert(std::make_pair(VT_UINT_PTR, "VT_UINT_PTR"));
+                    g_Map.insert(std::make_pair(VT_FILETIME, "VT_FILETIME"));
+                    g_Map.insert(std::make_pair(VT_BLOB, "VT_BLOB"));
+                    g_Map.insert(std::make_pair(VT_STREAM, "VT_STREAM"));
+                    g_Map.insert(std::make_pair(VT_STORAGE, "VT_STORAGE"));
+                    g_Map.insert(std::make_pair(VT_STREAMED_OBJECT, "VT_STREAMED_OBJECT"));
+                    g_Map.insert(std::make_pair(VT_STORED_OBJECT, "VT_STORED_OBJECT"));
+                    g_Map.insert(std::make_pair(VT_BLOB_OBJECT, "VT_BLOB_OBJECT"));
+                    g_Map.insert(std::make_pair(VT_CF, "VT_CF"));
+                    g_Map.insert(std::make_pair(VT_CLSID, "VT_CLSID"));
+                    g_Map.insert(std::make_pair(VT_VERSIONED_STREAM, "VT_VERSIONED_STREAM"));
+                    g_Map.insert(std::make_pair(VT_BSTR_BLOB, "VT_BSTR_BLOB"));
+                    g_Map.insert(std::make_pair(VT_VECTOR, "VT_VECTOR"));
+                    g_Map.insert(std::make_pair(VT_ARRAY, "VT_ARRAY"));
+                    g_Map.insert(std::make_pair(VT_BYREF, "VT_BYREF"));
+                    g_Map.insert(std::make_pair(VT_RESERVED, "VT_RESERVED"));
+                    g_Map.insert(std::make_pair(VT_ILLEGAL, "VT_ILLEGAL"));
+                    g_Map.insert(std::make_pair(VT_ILLEGALMASKED, "VT_ILLEGALMASKED"));
+                    g_Map.insert(std::make_pair(VT_TYPEMASK, "VT_TYPEMASK"));
+                }
+
+                auto it = g_Map.find(p_Value);
+                if (g_Map.end() != it)
                 {
                     return it->second;
                 }

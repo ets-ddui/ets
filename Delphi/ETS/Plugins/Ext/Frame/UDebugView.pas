@@ -44,7 +44,7 @@ implementation
 {$R *.dfm}
 
 uses
-  UTool, UQueueManager;
+  StrUtils, UTool, UQueueManager;
 
 type
   TDebugViewThread = class(TThread)
@@ -195,7 +195,7 @@ procedure TDebugViewMonitor.Execute;
     tn := FForm.TgData.RootNode.First;
     while Assigned(tn) do
     begin
-      if tn.Caption = AProcessID then
+      if LeftStr(tn.Caption, Length(AProcessID)) = AProcessID then
         Break;
 
       if tn = FForm.TgData.RootNode.Last then
@@ -206,10 +206,11 @@ procedure TDebugViewMonitor.Execute;
 
     if not Assigned(tn) then
     begin
-      tn := FForm.TgData.RootNode.AddChild(AProcessID);
+      tn := FForm.TgData.RootNode.AddChild('');
       FForm.TgData.Cells[FForm.TgData.Columns[1], tn] := GetProcessImageNameByID(StrToInt(AProcessID));
     end;
 
+    tn.Caption := Format('%s(%d)', [AProcessID, tn.ChildCount + 1]);
     tn := tn.AddChild(FormatDateTime('hh:nn:ss.zzz', Now), True);
     FForm.TgData.Cells[FForm.TgData.Columns[1], tn] := AMessage;
   end;
