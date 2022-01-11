@@ -607,7 +607,7 @@ namespace vcl4c
                     return;
                 }
 
-                WriteView(Format("符号个数：%d", ta->cFuncs));
+                WriteView(Format("%s符号个数：%d", GetParamFlag(ta->idldescType.wIDLFlags).c_str(), ta->cFuncs));
 
                 for (int i = 0; i < ta->cFuncs; ++i)
                 {
@@ -636,7 +636,10 @@ namespace vcl4c
                         {
                             ELEMDESC *ed = fd->lprgelemdescParam + iInner;
 
-                            str.append(Format("<%d>%s, ", ed->tdesc.vt, GetVarTypeName(ed->tdesc.vt).c_str()));
+                            str.append(Format("%s<%d>%s, ",
+                                GetParamFlag(ed->paramdesc.wParamFlags).c_str(),
+                                ed->tdesc.vt,
+                                GetVarTypeName(ed->tdesc.vt).c_str()));
                         }
 
                         if (0 < fd->cParams)
@@ -733,6 +736,29 @@ namespace vcl4c
                 {
                     return "";
                 }
+            }
+
+            const std::string GetParamFlag(const USHORT p_Value)
+            {
+                std::string strResult("[");
+
+                if (p_Value & PARAMFLAG_FIN) strResult.append("in, ");
+                if (p_Value & PARAMFLAG_FOUT) strResult.append("out, ");
+                if (p_Value & PARAMFLAG_FLCID) strResult.append("lcid, ");
+                if (p_Value & PARAMFLAG_FRETVAL) strResult.append("retval, ");
+                if (p_Value & PARAMFLAG_FOPT) strResult.append("opt, ");
+                if (p_Value & PARAMFLAG_FHASDEFAULT) strResult.append("has_default, ");
+                if (p_Value & PARAMFLAG_FHASCUSTDATA) strResult.append("has_custdata, ");
+
+                if (1 < strResult.size())
+                {
+                    strResult.pop_back();
+                    strResult.pop_back();
+                }
+
+                strResult.append("]");
+
+                return strResult;
             }
 
             const std::string GetVarTypeName(const VARTYPE p_Value)
