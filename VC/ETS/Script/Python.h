@@ -333,6 +333,7 @@ namespace ets
                 {
                     PyObject_HEAD
                     IDispatch *m_itfObject;
+                    std::map<std::string, INVOKEKIND> *m_mapNames;
 
                     static void DeAlloc(PyObject *p_Self)
                     {
@@ -342,6 +343,12 @@ namespace ets
                         {
                             obj->m_itfObject->Release();
                             obj->m_itfObject = nullptr;
+                        }
+
+                        if (nullptr != obj->m_mapNames)
+                        {
+                            delete obj->m_mapNames;
+                            obj->m_mapNames = nullptr;
                         }
 
                         obj->ob_type->tp_free(obj);
@@ -392,7 +399,89 @@ namespace ets
                     {
                         CDispatchForPython *obj = reinterpret_cast<CDispatchForPython *>(p_Self);
 
+                        if (nullptr == obj->m_mapNames)
+                        {
+                            obj->m_mapNames = new std::map<std::string, INVOKEKIND>();
+                            InitNames(*obj->m_mapNames, obj->m_itfObject);
+                        }
+
+                        const auto it = obj->m_mapNames->find(p_sName);
+                        if (it != obj->m_mapNames->end())
+                        {
+                            if (INVOKE_PROPERTYGET == it->second)
+                            {
+                                CComVariant v;
+                                HRESULT hRes = vcl4c::itf::CDispatchHelper::DispatchInvoke(
+                                    obj->m_itfObject, p_sName, DISPATCH_PROPERTYGET, &v, "");
+                                if (FAILED(hRes))
+                                {
+                                    PyErr_SetString(PyExc_RuntimeError, "读取属性失败");
+                                    return nullptr;
+                                }
+
+                                return VariantToPython(v);
+                            }
+                        }
+
                         return PyFunction_FromDispatch(obj->m_itfObject, p_sName);
+                    }
+
+                private:
+                    static void InitNames(std::map<std::string, INVOKEKIND> &p_mapResult, IDispatch *p_itfObject)
+                    {
+                        p_mapResult.clear();
+
+                        UINT iTypeInfoCount = 0;
+                        HRESULT hRes = p_itfObject->GetTypeInfoCount(&iTypeInfoCount);
+                        if (FAILED(hRes) || 0 == iTypeInfoCount)
+                        {
+                            return;
+                        }
+
+                        ITypeInfo *ti = nullptr;
+                        hRes = p_itfObject->GetTypeInfo(0, 0, &ti);
+                        if (FAILED(hRes))
+                        {
+                            return;
+                        }
+                        CComPtr<ITypeInfo> cpTypeInfo; //析构时释放引用计数
+                        cpTypeInfo.Attach(ti);
+
+                        TYPEATTR* ta;
+                        hRes = cpTypeInfo->GetTypeAttr(&ta);
+                        if (FAILED(hRes))
+                        {
+                            return;
+                        }
+                        std::unique_ptr<TYPEATTR, CTypeAttrDeleter> upTypeAttr(ta, CTypeAttrDeleter(ti));
+
+                        for (int i = 0; i < upTypeAttr->cFuncs; ++i)
+                        {
+                            FUNCDESC* fd = nullptr;
+                            hRes = cpTypeInfo->GetFuncDesc(i, &fd);
+                            if (FAILED(hRes))
+                            {
+                                continue;
+                            }
+                            std::unique_ptr<FUNCDESC, CFuncDescDeleter> upFuncDesc(fd, CFuncDescDeleter(ti));
+
+                            //暂时只支持不带附加参数的属性类型，因此，SetAttr中直接调用IDispatch.Invoke即可，不会走到这里来
+                            //能触发此函数执行的只会是GetAttr，所以，对于属性设置的场景，可以直接跳过
+                            //需要注意，读/写属性在tlb中会有两条记录，这里不过滤的话，map没法存
+                            if (INVOKE_PROPERTYPUT == upFuncDesc->invkind || INVOKE_PROPERTYPUTREF == upFuncDesc->invkind)
+                            {
+                                continue;
+                            }
+
+                            CComBSTR bsName;
+                            if (SUCCEEDED(cpTypeInfo->GetDocumentation(upFuncDesc->memid, &bsName, NULL, NULL, NULL)))
+                            {
+                                USES_CONVERSION_EX;
+                                char *s = W2A_EX(bsName, bsName.Length());
+
+                                p_mapResult.insert(std::make_pair(s, upFuncDesc->invkind));
+                            }
+                        }
                     }
 
                 };
@@ -548,6 +637,40 @@ namespace ets
                         return nullptr;
                     }
                 }
+
+                struct CTypeAttrDeleter
+                {
+                    CTypeAttrDeleter(ITypeInfo *p_TypeInfo)
+                        : m_TypeInfo(p_TypeInfo)
+                    {
+                    }
+
+                    void operator()(TYPEATTR *p_TypeAttr)
+                    {
+                        m_TypeInfo->ReleaseTypeAttr(p_TypeAttr);
+                    }
+
+                private:
+                    ITypeInfo *m_TypeInfo;
+
+                };
+
+                struct CFuncDescDeleter
+                {
+                    CFuncDescDeleter(ITypeInfo *p_TypeInfo)
+                        : m_TypeInfo(p_TypeInfo)
+                    {
+                    }
+
+                    void operator()(FUNCDESC *p_FuncDesc)
+                    {
+                        m_TypeInfo->ReleaseFuncDesc(p_FuncDesc);
+                    }
+
+                private:
+                    ITypeInfo *m_TypeInfo;
+
+                };
 
             };
 

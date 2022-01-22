@@ -69,6 +69,9 @@ function DoToolChainChange() {
         case "Make":
             g_objToolChain = Require("Frame/ToolChain/Make.js");
             break;
+        case "CMake":
+            g_objToolChain = Require("Frame/ToolChain/CMake.js");
+            break;
         case "GN":
             g_objToolChain = Require("Frame/ToolChain/GN.js");
             break;
@@ -79,7 +82,7 @@ function DoToolChainChange() {
             return;
     }
 
-    var arrTargets = g_objToolChain.ListTargets("");
+    var arrTargets = g_objToolChain.ListTargets(g_sWorkSpace);
     for (var i in arrTargets) {
         tnProjNode.AddChild(arrTargets[i], false);
     }
@@ -105,6 +108,7 @@ function InitFileList(p_This, p_sPath, p_iIndex, p_iCount) {
 
     //3.0 π§æﬂ¡¥≤‚ ‘
     if (Ets.FileExists([p_sPath, "makefile"].join("/"))) cbToolChain.AddData("Make");
+    if (Ets.FileExists([p_sPath, "CMakeLists.txt"].join("/"))) cbToolChain.AddData("CMake");
     if (Ets.FileExists([p_sPath, "BUILD.gn"].join("/"))) cbToolChain.AddData("GN");
     if (Ets.FileExists([p_sPath, "/", sProjName, ".sln"].join(""))) cbToolChain.AddData("VC");
     if (0 == cbToolChain.ItemCount) return;
