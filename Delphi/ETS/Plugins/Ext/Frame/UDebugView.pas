@@ -55,7 +55,7 @@ type
   protected
     procedure Execute; override;
   public
-    constructor Create(AQueue: OleVariant); reintroduce;
+    constructor Create(AQueue: OleVariant; AMonitor: TThread); reintroduce;
     destructor Destroy; override;
   end;
 
@@ -70,7 +70,7 @@ type
 
 { TDebugViewThread }
 
-constructor TDebugViewThread.Create(AQueue: OleVariant);
+constructor TDebugViewThread.Create(AQueue: OleVariant; AMonitor: TThread);
 begin
   inherited Create(True);
   FQueue := AQueue;
@@ -116,6 +116,7 @@ begin
     Exit;
   until True;
 
+  AMonitor.Terminate;
   Terminate; //出现异常才会执行到这里，正常情况下，在上面循环的结束会退出
 end;
 
@@ -262,12 +263,13 @@ begin
     BtnStart.Enabled := False;
     BtnStop.Enabled := True;
 
-    FThread := TDebugViewThread.Create(FQueue);
+    FMonitor := TDebugViewMonitor.Create(Self);
+
+    FThread := TDebugViewThread.Create(FQueue, FMonitor);
     FThread.FreeOnTerminate := True;
     FThread.OnTerminate := DoTerminate;
     FThread.Resume;
 
-    FMonitor := TDebugViewMonitor.Create(Self);
     FMonitor.FreeOnTerminate := True;
     FMonitor.OnTerminate := DoTerminate;
     FMonitor.Resume;

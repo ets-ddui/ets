@@ -19,7 +19,8 @@ unit UDispatchWrapper;
 interface
 
 uses
-  Windows, Classes, SysUtils, ObjComAuto, SyncObjs, TypInfo, ObjAuto, ActiveX, UInterface;
+  Windows, Classes, SysUtils, ObjComAuto, SyncObjs, TypInfo, ObjAuto, ActiveX,
+  UInterface, UTypeInfo;
 
 type
   PVariantArray = ^TVariantArray;
@@ -53,6 +54,7 @@ type
     destructor Destroy; override;
   public
     {IDispatch µœ÷}
+    FTypeInfo: ITypeInfo;
     function GetIDsOfNames(const IID: TGUID; Names: Pointer;
       NameCount: Integer; LocaleID: Integer; DispIDs: Pointer): HRESULT; stdcall;
     function Invoke(ADispID: Integer; const AIID: TGUID; ALocaleID: Integer;
@@ -373,12 +375,23 @@ end;
 function TDispatchWrapper.GetTypeInfo(AIndex, ALocaleID: Integer;
   out ATypeInfo): HRESULT;
 begin
-  Result := E_NOTIMPL;
+  if AIndex <> 0 then
+  begin
+    Result := E_INVALIDARG;
+    Exit;
+  end;
+
+  if not Assigned(FTypeInfo) then
+    FTypeInfo := TTypeInfo.Create(FInstance);
+
+  ITypeInfo(ATypeInfo) := FTypeInfo;
+  Result := S_OK;
 end;
 
 function TDispatchWrapper.GetTypeInfoCount(out ACount: Integer): HRESULT;
 begin
-  Result := E_NOTIMPL;
+  ACount := 1;
+  Result := S_OK;
 end;
 
 function TDispatchWrapper.GetMethodInfo(const AName: ShortString;

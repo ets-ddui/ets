@@ -34,6 +34,7 @@
     <DCCReference Include="rtl.dcp" />
     <DCCReference Include="vcl.dcp" />
     <DCCReference Include="vcldb.dcp" />
+    <DCCReference Include="..\..\Comm\URtti.pas" />
     <DCCReference Include="MainForm\UChild.pas" />
     <DCCReference Include="MainForm\UForm.pas" />
     <DCCReference Include="MainForm\UMessageConst.pas" />
@@ -48,6 +49,7 @@
     <DCCReference Include="Module\UMemoryBlock.pas" />
     <DCCReference Include="Module\UModuleBase.pas" />
     <DCCReference Include="Module\UTrayIcon.pas" />
+    <DCCReference Include="Module\UTypeInfo.pas" />
     <DCCReference Include="UI\Grid\UETSTreeGrid.pas" />
     <DCCReference Include="UI\UETSComboBox.pas" />
     <DCCReference Include="UI\UETSRegComponents.pas" />

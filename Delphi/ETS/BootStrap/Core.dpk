@@ -33,9 +33,7 @@ requires
   vcldb;
 
 contains
-  ULibraryManager in 'Module\ULibraryManager.pas',
-  UManager in 'Module\UManager.pas',
-  UTrayIcon in 'Module\UTrayIcon.pas',
+  URtti in '..\..\Comm\URtti.pas',
   UChild in 'MainForm\UChild.pas',
   UForm in 'MainForm\UForm.pas',
   UScript in 'MainForm\UScript.pas',
@@ -45,8 +43,12 @@ contains
   UDispatchWrapper in 'Module\UDispatchWrapper.pas',
   UFrameBase in 'Module\UFrameBase.pas',
   UInterface in 'Module\UInterface.pas',
+  ULibraryManager in 'Module\ULibraryManager.pas',
+  UManager in 'Module\UManager.pas',
   UMemoryBlock in 'Module\UMemoryBlock.pas',
   UModuleBase in 'Module\UModuleBase.pas',
+  UTrayIcon in 'Module\UTrayIcon.pas',
+  UTypeInfo in 'Module\UTypeInfo.pas',
   UETSRegComponents in 'UI\UETSRegComponents.pas',
   UETSComboBox in 'UI\UETSComboBox.pas',
   UETSTreeGrid in 'UI\Grid\UETSTreeGrid.pas',
