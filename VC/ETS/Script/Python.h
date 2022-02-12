@@ -194,7 +194,7 @@ namespace ets
             static _inittab m_itExtendModule[];
             static long m_iInstanceCount;
             static CComPtr<IDispatch> m_itfContainer;
-            CComPtr<IDispatch> m_itfFrame;
+            static CComPtr<IDispatch> m_itfFrame;
 
             /** Python扩展模块ETS的实现类
             */
@@ -268,6 +268,53 @@ namespace ets
                     }
 
                     return true;
+                }
+
+                static PyObject *GetFrame(PyObject *p_Self, PyObject *p_Args)
+                {
+                    if (!CPython::m_itfFrame)
+                    {
+                        PyErr_SetString(PyExc_TypeError, "根窗口控件不存在");
+                        return nullptr;
+                    }
+
+                    int iLen = PyTuple_Size(p_Args);
+                    if (0 == iLen)
+                    {
+                        return PyDispatch_FromDispatch(CPython::m_itfFrame);
+                    }
+                    else if (1 == iLen)
+                    {
+                        PyObject *objItem = PyTuple_GetItem(p_Args, 0); //返回的指针是借用类型
+                        if (nullptr == objItem)
+                        {
+                            return nullptr;
+                        }
+
+                        std::string str;
+                        if (!ObjectToString(str, objItem))
+                        {
+                            PyErr_SetString(PyExc_TypeError, "参数类型不合法");
+                            return nullptr;
+                        }
+
+                        CComVariant vResult;
+                        IDispatch *itfResult = nullptr;
+                        HRESULT hRes = vcl4c::itf::CDispatchHelper::DispatchInvoke(CPython::m_itfFrame,
+                            "GetFrame", DISPATCH_METHOD, &vResult, "sI*", str.c_str(), &itfResult);
+                        if (FAILED(hRes))
+                        {
+                            PyErr_SetString(PyExc_TypeError, vcl4c::string::Format("控件[%s]获取失败", str.c_str()).c_str());
+                            return nullptr;
+                        }
+
+                        return PyDispatch_FromDispatch(itfResult);
+                    }
+                    else
+                    {
+                        PyErr_SetString(PyExc_TypeError, vcl4c::string::Format("参数个数[%d]不合法", iLen).c_str());
+                        return nullptr;
+                    }
                 }
 
                 static PyObject *Show(PyObject *p_Self, PyObject *p_Args)
@@ -415,7 +462,7 @@ namespace ets
                                     obj->m_itfObject, p_sName, DISPATCH_PROPERTYGET, &v, "");
                                 if (FAILED(hRes))
                                 {
-                                    PyErr_SetString(PyExc_RuntimeError, "读取属性失败");
+                                    PyErr_SetString(PyExc_RuntimeError, vcl4c::string::Format("读取属性[%s]失败", p_sName).c_str());
                                     return nullptr;
                                 }
 
@@ -424,6 +471,78 @@ namespace ets
                         }
 
                         return PyFunction_FromDispatch(obj->m_itfObject, p_sName);
+                    }
+
+                    static int SetAttr(PyObject *p_Self, char *p_sName, PyObject *p_Value)
+                    {
+                        CDispatchForPython *obj = reinterpret_cast<CDispatchForPython *>(p_Self);
+
+                        HRESULT hRes = S_OK;
+                        CComVariant v;
+                        if (PyDispatch_Check(p_Value))
+                        {
+                            CDispatchForPython *objValue = reinterpret_cast<CDispatchForPython *>(p_Value);
+                            hRes = vcl4c::itf::CDispatchHelper::DispatchInvoke(
+                                obj->m_itfObject, p_sName, DISPATCH_PROPERTYPUT, &v, "I", objValue->m_itfObject);
+                        }
+                        else if (PyInt_Check(p_Value))
+                        {
+                            hRes = vcl4c::itf::CDispatchHelper::DispatchInvoke(
+                                obj->m_itfObject, p_sName, DISPATCH_PROPERTYPUT, &v, "d", int(PyInt_AS_LONG(p_Value)));
+                        }
+                        else if (PyLong_Check(p_Value))
+                        {
+                            hRes = vcl4c::itf::CDispatchHelper::DispatchInvoke(
+                                obj->m_itfObject, p_sName, DISPATCH_PROPERTYPUT, &v, "D", PyLong_AsUnsignedLongLongMask(p_Value));
+                        }
+                        else if (PyFloat_Check(p_Value))
+                        {
+                            hRes = vcl4c::itf::CDispatchHelper::DispatchInvoke(
+                                obj->m_itfObject, p_sName, DISPATCH_PROPERTYPUT, &v, "f", PyFloat_AS_DOUBLE(p_Value));
+                        }
+                        else if (PyByteArray_Check(p_Value))
+                        {
+                            hRes = vcl4c::itf::CDispatchHelper::DispatchInvoke(
+                                obj->m_itfObject, p_sName, DISPATCH_PROPERTYPUT, &v, "s", PyByteArray_AsString(p_Value));
+                        }
+                        else if (PyString_Check(p_Value))
+                        {
+                            hRes = vcl4c::itf::CDispatchHelper::DispatchInvoke(
+                                obj->m_itfObject, p_sName, DISPATCH_PROPERTYPUT, &v, "s", PyString_AS_STRING(p_Value));
+                        }
+                        else if (PyUnicode_Check(p_Value))
+                        {
+                            hRes = vcl4c::itf::CDispatchHelper::DispatchInvoke(
+                                obj->m_itfObject, p_sName, DISPATCH_PROPERTYPUT, &v, "S", PyUnicode_AS_UNICODE(p_Value));
+                        }
+                        else if (PyCallable_Check(p_Value))
+                        {
+                            CEvent *e = new(std::nothrow) CEvent(p_Value);
+                            if (nullptr == e)
+                            {
+                                PyErr_SetString(PyExc_MemoryError, "CEvent创建失败");
+                                return -1;
+                            }
+
+                            IDispatch *itf = static_cast<IDispatch *>(e);
+                            itf->AddRef();
+                            hRes = vcl4c::itf::CDispatchHelper::DispatchInvoke(
+                                obj->m_itfObject, p_sName, DISPATCH_PROPERTYPUT, &v, "I", itf);
+                            itf->Release();
+                        }
+                        else
+                        {
+                            PyErr_SetString(PyExc_TypeError, "无法识别的入参类型");
+                            return -1;
+                        }
+
+                        if (FAILED(hRes))
+                        {
+                            PyErr_SetString(PyExc_RuntimeError, vcl4c::string::Format("设置属性[%s]失败", p_sName).c_str());
+                            return -1;
+                        }
+
+                        return 0;
                     }
 
                 private:
@@ -483,6 +602,92 @@ namespace ets
                             }
                         }
                     }
+
+                    struct CEvent
+                        : public CInterfaceBase<ATL::CComMultiThreadModel>,
+                        public IDispatch
+                    {
+                        BEGIN_DEFINE_MAP(CEvent)
+                            SIMPLE_INTERFACE(IDispatch)
+                        END_DEFINE_MAP()
+
+                        IMPLEMENT_IUNKNOWN()
+
+                    public:
+                        explicit CEvent(PyObject *p_Function)
+                            : CInterfaceBase(NULL), m_Function(p_Function)
+                        {
+                        }
+
+                    public:
+                        //IDispatch实现
+                        STDMETHOD(GetTypeInfoCount)(_Out_ UINT* p_iTypeInfoCount)
+                        {
+                            return E_NOTIMPL;
+                        }
+
+                        STDMETHOD(GetTypeInfo)(_In_ UINT p_iTypeInfo, _In_ LCID p_iLocaleID, _Deref_out_ ITypeInfo** p_TypeInfo)
+                        {
+                            return E_NOTIMPL;
+                        }
+
+                        STDMETHOD(GetIDsOfNames)(_In_ REFIID /*p_IID*/,
+                            _In_count_(p_iNamesCount) _Deref_pre_z_ LPOLESTR* p_sNames, _In_ UINT p_iNamesCount,
+                            _In_ LCID p_iLocaleID, _Out_ DISPID* p_DispID)
+                        {
+                            if (1 == p_iNamesCount)
+                            {
+                                *p_DispID = 0;
+                                return S_OK;
+                            }
+                            else
+                            {
+                                return E_INVALIDARG;
+                            }
+                        }
+
+                        STDMETHOD(Invoke)(_In_ DISPID p_DispID, _In_ REFIID /*p_IID*/,
+                            _In_ LCID p_iLocaleID, _In_ WORD p_iFlags,
+                            _In_ DISPPARAMS* p_Params,
+                            _Out_opt_ VARIANT* p_vResult, _Out_opt_ EXCEPINFO* p_eiExceptionInfo, _Out_opt_ UINT* p_iArgumentError)
+                        {
+                            if (DISPATCH_METHOD != p_iFlags)
+                            {
+                                return E_INVALIDARG;
+                            }
+
+                            //未传参时，Delphi会自动添加一个VT_ERROR类型的参数，值为DISP_E_PARAMNOTFOUND，这里做修正
+                            if (1 == p_Params->cArgs && VT_ERROR == p_Params->rgvarg[0].vt && DISP_E_PARAMNOTFOUND == p_Params->rgvarg[0].lVal)
+                            {
+                                p_Params->cArgs = 0;
+                            }
+
+                            PyObject *tup = PyTuple_New(p_Params->cArgs);
+                            if (nullptr == tup)
+                            {
+                                return E_OUTOFMEMORY;
+                            }
+
+                            for (int iParam = p_Params->cArgs - 1, iTuple = 0; iParam >= 0; --iParam, ++iTuple)
+                            {
+                                PyTuple_SetItem(tup, iTuple, VariantToPython(p_Params->rgvarg[iParam]));
+                            }
+
+                            PyObject *objResult = PyObject_Call(m_Function, tup, nullptr);
+                            if (nullptr == objResult)
+                            {
+                                return E_FAIL;
+                            }
+                            Py_DECREF(tup);
+                            Py_DECREF(objResult);
+
+                            return PyErr_Occurred() ? E_UNEXPECTED : S_OK;
+                        }
+
+                    private:
+                        PyObject *m_Function;
+
+                    };
 
                 };
 
@@ -592,17 +797,8 @@ namespace ets
                     return reinterpret_cast<PyObject *>(ffpResult);
                 }
 
-                static PyObject *VariantToPython(CComVariant &p_vValue)
+                static PyObject *VariantToPython(VARIANT &p_vValue)
                 {
-                    if (VT_UNKNOWN == p_vValue.vt)
-                    {
-                        HRESULT hRes = p_vValue.ChangeType(VT_DISPATCH);
-                        if (FAILED(hRes))
-                        {
-                            return nullptr;
-                        }
-                    }
-
                     switch (p_vValue.vt)
                     {
                     case VT_BOOL:
@@ -631,11 +827,25 @@ namespace ets
                         return PyFloat_FromDouble(p_vValue.dblVal);
                     case VT_BSTR:
                         return PyUnicode_FromWideChar(p_vValue.bstrVal, ::SysStringByteLen(p_vValue.bstrVal));
+                    case VT_UNKNOWN:
+                        //将IUnknown转换为IDispatch
+                        if (FAILED(::VariantChangeType(&p_vValue, nullptr, 0, VT_DISPATCH)))
+                        {
+                            return nullptr;
+                        }
+
+                        //继续执行VT_DISPATCH的逻辑
                     case VT_DISPATCH:
                         return PyDispatch_FromDispatch(p_vValue.pdispVal);
                     default:
                         return nullptr;
                     }
+                }
+
+                static bool PyDispatch_Check(const PyObject *p_Value)
+                {
+                    //Check类函数通常以宏的方式实现
+                    return PyObject_TypeCheck(p_Value, &m_toDispatch);
                 }
 
                 struct CTypeAttrDeleter
@@ -786,8 +996,14 @@ namespace ets
         __declspec(selectany) char CPython::CEtsForPython::m_sModuleName[] = "ets";
 
         __declspec(selectany) PyMethodDef CPython::CEtsForPython::m_mdEntry[] = {
-            {"Show",   CPython::CEtsForPython::Show,  METH_VARARGS, "Show(str)\n输出信息到日志窗口"},
-            {"Stop",   CPython::CEtsForPython::Stop,  METH_VARARGS, "Stop()\n检查用户是否终止当前任务"},
+            {"GetFrame",CPython::CEtsForPython::GetFrame,   METH_VARARGS, "GetFrame(str)\n获取窗口控件"},
+            {"Show",    CPython::CEtsForPython::Show,       METH_VARARGS, "Show(str)\n输出信息到日志窗口"},
+            {"Stop",    CPython::CEtsForPython::Stop,       METH_VARARGS, "Stop()\n检查用户是否终止当前任务"},
+            {nullptr, nullptr}
+        };
+
+        __declspec(selectany) _inittab CPython::m_itExtendModule[] = {
+            {CPython::CEtsForPython::m_sModuleName, CPython::CEtsForPython::Entry},
             {nullptr, nullptr}
         };
 
@@ -800,7 +1016,7 @@ namespace ets
             CDispatchForPython::DeAlloc,/* tp_dealloc */
             0,                          /* tp_print */
             CDispatchForPython::GetAttr,/* tp_getattr */
-            0,                          /* tp_setattr */
+            CDispatchForPython::SetAttr,/* tp_setattr */
             0,                          /* tp_compare */
             0,                          /* tp_repr */
             0,                          /* tp_as_number */
@@ -839,13 +1055,9 @@ namespace ets
         };
         __declspec(selectany) PyTypeObject CPython::CEtsForPython::m_toFunction = CPython::CEtsForPython::m_toDispatch;
 
-        __declspec(selectany) _inittab CPython::m_itExtendModule[] = {
-            {CPython::CEtsForPython::m_sModuleName, CPython::CEtsForPython::Entry},
-            {nullptr, nullptr}
-        };
-
         __declspec(selectany) long CPython::m_iInstanceCount = 0;
         __declspec(selectany) CComPtr<IDispatch> CPython::m_itfContainer;
+        __declspec(selectany) CComPtr<IDispatch> CPython::m_itfFrame;
 
     }
 }
