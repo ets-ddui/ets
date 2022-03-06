@@ -42,6 +42,7 @@ type
     procedure FrameBaseDropFiles(AFileName: string; AIndex, ACount: Integer);
   private
     FThreadContainer: Variant;
+    FFrame: TDUIPanel;
   end;
 
 implementation
@@ -128,9 +129,15 @@ procedure TFrmPressTest.DoControlButtonClick(ASender: TObject);
     BtnStart.Enabled := False;
     BtnStop.Enabled := True;
     try
+      FreeAndNil(FFrame);
+      FFrame := TDUIPanel.Create(Self);
+      FFrame.Visible := False;
+      FFrame.Align := alBottom;
+      FFrame.DUIParent := Self;
+
       FThreadContainer := GetScriptThreadContainer;
       FThreadContainer.Restart;
-      FThreadContainer.RegFrame(WrapperObject(Self, False));
+      FThreadContainer.RegFrame(WrapperObject(FFrame, False));
       if 0 = CompareText(ExtractFileExt(PnlTitle.Caption), '.py') then
         FThreadContainer.AddCacheFile(PnlTitle.Caption, IInterface(TMemoryBlock.Create(EdScript.Text, etUtf8)))
       else

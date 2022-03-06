@@ -31,7 +31,6 @@ object FrmPressTest: TFrmPressTest
       StyleFile = 'embed:DefaultStyle'
       TabSize = 4
       UseTab = False
-      ExplicitTop = 0
     end
   end
   object PnlControls: TDUIPanel
@@ -40,6 +39,7 @@ object FrmPressTest: TFrmPressTest
     Width = 720
     Height = 25
     Align = alTop
+    AlignOrder = 2
     object BtnStart: TDUIButton
       Tag = 3
       Left = 50
@@ -164,6 +164,7 @@ object FrmPressTest: TFrmPressTest
     Width = 200
     Height = 476
     Align = alLeft
+    AlignOrder = 1
     Columns = <
       item
         Caption = #33050#26412#28165#21333

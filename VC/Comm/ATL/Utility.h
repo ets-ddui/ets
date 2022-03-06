@@ -1072,9 +1072,17 @@ namespace vcl4c
 
                     //参数要按从后向前的顺序传入
                     std::vector<CComVariant> vRevertParams(vParams.rbegin(), vParams.rend());
+                    std::vector<DISPID> vNamedParams;
 
                     dpParams.rgvarg = &vRevertParams[0];
                     dpParams.cArgs = vRevertParams.size();
+                    if (DISPATCH_PROPERTYPUT == p_iFlags && 1 == vRevertParams.size())
+                    {
+                        vNamedParams.push_back(DISPID_PROPERTYPUT);
+
+                        dpParams.rgdispidNamedArgs = &vNamedParams[0];
+                        dpParams.cNamedArgs = 1;
+                    }
                     hRes = p_itfObject->Invoke(p_didDispid, IID_NULL, LOCALE_USER_DEFAULT, p_iFlags,
                         &dpParams, p_vResult, nullptr, nullptr);
                 }

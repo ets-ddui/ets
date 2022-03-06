@@ -210,12 +210,6 @@ namespace ets
                         return;
                     }
 
-                    m_toFunction.tp_name = "ets.Dispatch.Function";
-                    m_toFunction.tp_basicsize = sizeof(CFunctionForPython);
-                    m_toFunction.tp_getattr = nullptr;
-                    m_toFunction.tp_setattr = nullptr;
-                    m_toFunction.tp_call = CFunctionForPython::Call;
-                    m_toFunction.tp_doc = "对Dispatch成员函数的包装";
                     if (PyType_Ready(&m_toFunction) < 0)
                     {
                         return;
@@ -755,6 +749,19 @@ namespace ets
                         return VariantToPython(vResult);
                     }
 
+                    static void DeAlloc(PyObject *p_Self)
+                    {
+                        CFunctionForPython *obj = reinterpret_cast<CFunctionForPython *>(p_Self);
+
+                        if (nullptr != obj->m_itfObject)
+                        {
+                            obj->m_itfObject->Release();
+                            obj->m_itfObject = nullptr;
+                        }
+
+                        obj->ob_type->tp_free(obj);
+                    }
+
                 };
 
             private:
@@ -1053,7 +1060,49 @@ namespace ets
             PyType_GenericNew,          /* tp_new */
             0,                          /* tp_free */
         };
-        __declspec(selectany) PyTypeObject CPython::CEtsForPython::m_toFunction = CPython::CEtsForPython::m_toDispatch;
+
+        __declspec(selectany) PyTypeObject CPython::CEtsForPython::m_toFunction = {
+            PyObject_HEAD_INIT(NULL)
+            0,                          /* ob_size */
+            "ets.Dispatch.Function",    /* tp_name */
+            sizeof(CFunctionForPython), /* tp_basicsize */
+            0,                          /* tp_itemsize */
+            CFunctionForPython::DeAlloc,/* tp_dealloc */
+            0,                          /* tp_print */
+            0,                          /* tp_getattr */
+            0,                          /* tp_setattr */
+            0,                          /* tp_compare */
+            0,                          /* tp_repr */
+            0,                          /* tp_as_number */
+            0,                          /* tp_as_sequence */
+            0,                          /* tp_as_mapping */
+            0,                          /* tp_hash */
+            CFunctionForPython::Call,   /* tp_call */
+            0,                          /* tp_str */
+            0,                          /* tp_getattro */
+            0,                          /* tp_setattro */
+            0,                          /* tp_as_buffer */
+            Py_TPFLAGS_DEFAULT,         /* tp_flags */
+            "对Dispatch成员函数的包装", /* tp_doc */
+            0,                          /* tp_traverse */
+            0,                          /* tp_clear */
+            0,                          /* tp_richcompare */
+            0,                          /* tp_weaklistoffset */
+            0,                          /* tp_iter */
+            0,                          /* tp_iternext */
+            0,                          /* tp_methods */
+            0,                          /* tp_members */
+            0,                          /* tp_getset */
+            0,                          /* tp_base */
+            0,                          /* tp_dict */
+            0,                          /* tp_descr_get */
+            0,                          /* tp_descr_set */
+            0,                          /* tp_dictoffset */
+            0,                          /* tp_init */
+            0,                          /* tp_alloc */
+            PyType_GenericNew,          /* tp_new */
+            0,                          /* tp_free */
+        };
 
         __declspec(selectany) long CPython::m_iInstanceCount = 0;
         __declspec(selectany) CComPtr<IDispatch> CPython::m_itfContainer;
