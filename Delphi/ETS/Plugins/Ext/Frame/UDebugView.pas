@@ -208,11 +208,12 @@ procedure TDebugViewMonitor.Execute;
     if not Assigned(tn) then
     begin
       tn := FForm.TgData.RootNode.AddChild('');
+      tn.Collapsed := True;
       FForm.TgData.Cells[FForm.TgData.Columns[1], tn] := GetProcessImageNameByID(StrToInt(AProcessID));
     end;
 
     tn.Caption := Format('%s(%d)', [AProcessID, tn.ChildCount + 1]);
-    tn := tn.AddChild(FormatDateTime('hh:nn:ss.zzz', Now), True);
+    tn := tn.AddChild(FormatDateTime('hh:nn:ss.zzz', Now));
     FForm.TgData.Cells[FForm.TgData.Columns[1], tn] := AMessage;
   end;
 var

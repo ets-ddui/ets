@@ -6,7 +6,8 @@ if "%BinDir%" == "" set BinDir=%~dp0../Out
 set BinTemp=%BinDir%/Temp
 set SrcBoost=%BinDir%/Boost
 set SrcNode=%BinDir%/Node
-set path=%path%;%~dp0/Tools/dev-bin
+set ToolPath=%~dp0/Tools
+set path=%path%;%ToolPath%/dev-bin
 
 rem 1.0 “¿¿µπ§æﬂœ¬‘ÿ
 if not exist DDUI (
