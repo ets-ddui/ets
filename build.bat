@@ -2,12 +2,12 @@ rem @echo off
 
 set MSBuild=C:\Windows\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe
 rem 生成目录放到源码之外，防止编译过程中，TortoiseGit占用CPU过高的问题
-if "%BinDir%" == "" set BinDir=%~dp0../Out
-set BinTemp=%BinDir%/Temp
-set SrcBoost=%BinDir%/Boost
-set SrcNode=%BinDir%/Node
-set ToolPath=%~dp0/Tools
-set path=%path%;%ToolPath%/dev-bin
+if "%BinDir%" == "" set BinDir=%~dp0..\Out
+set BinTemp=%BinDir%\Temp
+set SrcBoost=%BinDir%\Boost
+set SrcNode=%BinDir%\Node
+set ToolPath=%~dp0Tools
+set path=%path%;%ToolPath%\dev-bin
 
 rem 1.0 依赖工具下载
 if not exist DDUI (
@@ -18,26 +18,26 @@ if not exist Tools (
 git clone https://gitee.com/ets-ddui/build-tools.git Tools || goto EOF
 )
 
-if not exist "%~dp0/Tools/dev-bin/sed" (
-7z x "%~dp0/Tools/sed.7z" -o"%~dp0/Tools/dev-bin/sed" *
+if not exist "%ToolPath%\dev-bin\sed" (
+7z x "%ToolPath%\sed.7z" -o"%ToolPath%\dev-bin\sed" *
 )
 
-if not exist "%~dp0/Tools/dev-bin/python" (
-7z x "%~dp0/Tools/python.7z" -o"%~dp0/Tools/dev-bin/python" *
+if not exist "%ToolPath%\dev-bin\python" (
+7z x "%ToolPath%\python.7z" -o"%ToolPath%\dev-bin\python" *
 )
 
 rem 1.1 boost编译
-if not exist "%SrcBoost%/boost_1_64_0" call "Tools/boost/build.bat" || goto EOF
-if not exist "%SrcBoost%/lib" call "Tools/boost/build.bat" || goto EOF
+if not exist "%SrcBoost%\boost_1_64_0" call "Tools\boost\build.bat" || goto EOF
+if not exist "%SrcBoost%\lib" call "Tools\boost\build.bat" || goto EOF
 
 rem 1.2 node编译
-if not exist "%SrcNode%/node-v0.12.18" call "Tools/node/build.bat" || goto EOF
-if not exist "%SrcNode%/lib" call "Tools/node/build.bat" || goto EOF
+if not exist "%SrcNode%\node-v0.12.18" call "Tools\node\build.bat" || goto EOF
+if not exist "%SrcNode%\lib" call "Tools\node\build.bat" || goto EOF
 
 rem 2.0 环境变量初始化
 rem 2.1 查找Delphi的安装目录
-if "%BDS%" == "" call Tools/tools.bat GetReg BDS "HKLM\SOFTWARE\Borland\BDS\5.0" "RootDir"
-if "%BDS%" == "" call Tools/tools.bat GetReg BDS "HKLM\SOFTWARE\Wow6432Node\Borland\BDS\5.0" "RootDir"
+if "%BDS%" == "" call Tools\tools.bat GetReg BDS "HKLM\SOFTWARE\Borland\BDS\5.0" "RootDir"
+if "%BDS%" == "" call Tools\tools.bat GetReg BDS "HKLM\SOFTWARE\Wow6432Node\Borland\BDS\5.0" "RootDir"
 
 rem 3.0 程序构建(调试可添加“/v:diag >log.txt”)
 rem 3.1 Delphi
@@ -73,12 +73,12 @@ xcopy Boost\lib\boost_system-vc100-mt-1_64.dll      ETS\Dll\Boost\ /Y /I
 xcopy Boost\lib\boost_thread-vc100-mt-1_64.dll      ETS\Dll\Boost\ /Y /I
 popd
 
-7z x "Tools/msscript.7z"  -aos -o"%BinDir%\ETS\Lib\JScript" *
-7z x "Tools/python.7z"    -aos -o"%BinDir%\ETS\Lib\Python" DLLs python27.dll python27.zip
-7z x "Tools/SciLexer.7z"  -aos -o"%BinDir%\ETS\Dll\Common" *
+7z x "Tools\msscript.7z"  -aos -o"%BinDir%\ETS\Lib\JScript" *
+7z x "Tools\python.7z"    -aos -o"%BinDir%\ETS\Lib\Python" DLLs python27.dll python27.zip
+7z x "Tools\SciLexer.7z"  -aos -o"%BinDir%\ETS\Dll\Common" *
 
 rem 5.0 发布程序打包
-7z a "%BinDir%/Release.7z"  -aoa "%BinDir%\ETS\*" -mx=9 -myx=9
+7z a "%BinDir%\Release.7z"  -aoa "%BinDir%\ETS\*" -mx=9 -myx=9
 
 :EOF
 pause
