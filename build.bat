@@ -10,8 +10,8 @@ set ToolPath=%~dp0Tools
 set path=%path%;%ToolPath%\dev-bin
 
 rem 1.0 依赖工具下载
-if not exist DDUI (
-git clone https://gitee.com/ets-ddui/ets-ddui.git DDUI || goto EOF
+if not exist "Delphi\DDUI" (
+git clone https://gitee.com/ets-ddui/ets-ddui.git Delphi/DDUI || goto EOF
 )
 
 if not exist Tools (
@@ -41,9 +41,9 @@ if "%BDS%" == "" call Tools\tools.bat GetReg BDS "HKLM\SOFTWARE\Wow6432Node\Borl
 
 rem 3.0 程序构建(调试可添加“/v:diag >log.txt”)
 rem 3.1 Delphi
-"%MSBuild%" DDUI\Delphi\DDUI\dclDDUI.dproj /p:DCC_MapFile=0 || goto EOF
-"%MSBuild%" DDUI\Delphi\DDUI\DDUI.dproj /p:DCC_MapFile=0 || goto EOF
-"%MSBuild%" DDUI\Delphi\ThirdParty\JCL\JCL.dproj /p:DCC_MapFile=0 || goto EOF
+"%MSBuild%" Delphi\DDUI\DDUI\dclDDUI.dproj /p:DCC_MapFile=0 || goto EOF
+"%MSBuild%" Delphi\DDUI\DDUI\DDUI.dproj /p:DCC_MapFile=0 || goto EOF
+"%MSBuild%" Delphi\DDUI\ThirdParty\JCL\JCL.dproj /p:DCC_MapFile=0 || goto EOF
 "%MSBuild%" Delphi\ETS\BootStrap\Core.dproj /p:DCC_MapFile=0 || goto EOF
 "%MSBuild%" Delphi\ETS\BootStrap\ETS.dproj /p:DCC_MapFile=0 || goto EOF
 "%MSBuild%" Delphi\ETS\Plugins\Ext\Ext.dproj /p:DCC_MapFile=0 || goto EOF

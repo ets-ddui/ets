@@ -33,7 +33,7 @@ requires
   vcldb;
 
 contains
-  URtti in '..\..\..\DDUI\Delphi\Comm\URtti.pas',
+  URtti in '..\..\DDUI\Comm\URtti.pas',
   UChild in 'MainForm\UChild.pas',
   UForm in 'MainForm\UForm.pas',
   UScript in 'MainForm\UScript.pas',

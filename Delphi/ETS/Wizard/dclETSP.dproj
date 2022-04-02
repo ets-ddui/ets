@@ -7,9 +7,9 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
     <DCC_Define>PACKAGE_MODE;DESIGNTIME</DCC_Define>
-    <ETS_SearchPath>..\DDUI\Delphi\Comm</ETS_SearchPath>
+    <ETS_SearchPath>Comm</ETS_SearchPath>
   </PropertyGroup>
-  <Import Project="..\..\..\DDUI\Delphi\ETS.props" />
+  <Import Project="..\..\DDUI\ETS.props" />
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -24,7 +24,7 @@
     </Excluded_Packages><Source><Source Name="MainSource">dclETSP.dpk</Source></Source></Delphi.Personality></BorlandProject></BorlandProject>
   </ProjectExtensions>
   <Import Project="$(MSBuildBinPath)\Borland.Delphi.Targets" />
-  <Import Project="..\..\..\DDUI\Delphi\ETS.End.props" />
+  <Import Project="$(PropDir)\ETS.End.props" />
   <ItemGroup>
     <DelphiCompile Include="dclETSP.dpk">
       <MainSource>MainSource</MainSource>

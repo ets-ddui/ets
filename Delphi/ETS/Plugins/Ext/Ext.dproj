@@ -8,10 +8,10 @@
     <DCC_DCCCompiler>DCC32</DCC_DCCCompiler>
     <DCC_EnabledPackages>true</DCC_EnabledPackages>
     <DCC_UsePackage>rtl;vcl;vclx;DDUI;Core</DCC_UsePackage>
-    <ETS_SearchPath>..\DDUI\Delphi\Comm</ETS_SearchPath>
+    <ETS_SearchPath>Comm</ETS_SearchPath>
     <ETS_SubDir>ETS\Dll\Plugin.D</ETS_SubDir>
   </PropertyGroup>
-  <Import Project="..\..\..\..\DDUI\Delphi\ETS.props" />
+  <Import Project="..\..\..\DDUI\ETS.props" />
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -24,7 +24,7 @@
     </Excluded_Packages><Source><Source Name="MainSource">Ext.dpr</Source></Source></Delphi.Personality></BorlandProject></BorlandProject>
   </ProjectExtensions>
   <Import Project="$(MSBuildBinPath)\Borland.Delphi.Targets" />
-  <Import Project="..\..\..\..\DDUI\Delphi\ETS.End.props" />
+  <Import Project="$(PropDir)\ETS.End.props" />
   <ItemGroup>
     <DelphiCompile Include="Ext.dpr">
       <MainSource>MainSource</MainSource>
