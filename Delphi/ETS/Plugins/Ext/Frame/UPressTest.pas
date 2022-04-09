@@ -78,7 +78,7 @@ begin
     Exit;
 
   PnlTitle.Caption := tn.Cells[1];
-  EdScript.LoadFromFile(tn.Cells[1]);
+  EdScript.Text.LoadFromFile(tn.Cells[1]);
 end;
 
 procedure TFrmPressTest.DoControlButtonClick(ASender: TObject);
@@ -140,9 +140,9 @@ procedure TFrmPressTest.DoControlButtonClick(ASender: TObject);
       FThreadContainer.Restart;
       FThreadContainer.RegFrame(WrapperObject(FFrame, False));
       if 0 = CompareText(ExtractFileExt(PnlTitle.Caption), '.py') then
-        FThreadContainer.AddCacheFile(PnlTitle.Caption, IInterface(TMemoryBlock.Create(EdScript.Text, etUtf8)))
+        FThreadContainer.AddCacheFile(PnlTitle.Caption, IInterface(TMemoryBlock.Create(EdScript.Text.Value, etUtf8)))
       else
-        FThreadContainer.AddCacheFile(PnlTitle.Caption, IInterface(TMemoryBlock.Create(EdScript.Text, etGbk)));
+        FThreadContainer.AddCacheFile(PnlTitle.Caption, IInterface(TMemoryBlock.Create(EdScript.Text.Value, etGbk)));
       FThreadContainer.AddThread(PnlTitle.Caption, 'main()');
       FThreadContainer.WaitFor;
     finally
@@ -158,7 +158,7 @@ begin
     1: //新建
     begin
       PnlTitle.Caption := 'Untitled.js';
-      EdScript.LoadFromFile('Lib/Default.js');
+      EdScript.Text.LoadFromFile('Lib/Default.js');
     end;
     2: //刷新
     begin
@@ -176,7 +176,7 @@ begin
   if AIndex = 1 then //如果选择了多个文件，只取第1个
   begin
     PnlTitle.Caption := AFileName;
-    EdScript.LoadFromFile(AFileName);
+    EdScript.Text.LoadFromFile(AFileName);
   end;
 end;
 
