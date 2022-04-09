@@ -12,10 +12,16 @@ set path=%path%;%ToolPath%\dev-bin
 rem 1.0 “¿¿µπ§æﬂœ¬‘ÿ
 if not exist "Delphi\DDUI" (
 git clone https://gitee.com/ets-ddui/ets-ddui.git Delphi/DDUI || goto EOF
+pushd Delphi\DDUI
+git remote add github https://github.com/ets-ddui/ets-ddui.git
+popd
 )
 
 if not exist Tools (
 git clone https://gitee.com/ets-ddui/build-tools.git Tools || goto EOF
+pushd Tools
+git remote add github https://github.com/ets-ddui/build-tools.git
+popd
 )
 
 if not exist "%ToolPath%\dev-bin\sed" (
