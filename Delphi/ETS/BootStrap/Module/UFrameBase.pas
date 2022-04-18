@@ -257,11 +257,14 @@ begin
     end;
     ntToggle:
     begin
+      {$IFDEF DESIGNTIME}
+      {$ELSE}
       if not Assigned(DUIParent) then
         //首次创建窗口时特殊处理(此时Visible为True)
         DUIParent := GetParam.FParent
       else
         Visible := not Visible;
+      {$ENDIF}
     end;
     ntDeActive:
     begin

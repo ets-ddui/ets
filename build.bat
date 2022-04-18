@@ -53,6 +53,7 @@ rem 3.1 Delphi
 "%MSBuild%" Delphi\ETS\BootStrap\Core.dproj /p:DCC_MapFile=0 || goto EOF
 "%MSBuild%" Delphi\ETS\BootStrap\ETS.dproj /p:DCC_MapFile=0 || goto EOF
 "%MSBuild%" Delphi\ETS\Plugins\Ext\Ext.dproj /p:DCC_MapFile=0 || goto EOF
+"%MSBuild%" Delphi\ETS\Wizard\dclETSP.dproj /p:DCC_MapFile=0 || goto EOF
 
 rem 3.2 VC
 "%MSBuild%" VC\ETS\Debug\Debug.vcxproj /p:Configuration=Release /p:BinDir="%BinDir%" /p:BoostDir="%SrcBoost%/boost_1_64_0" || goto EOF
