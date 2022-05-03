@@ -26,11 +26,10 @@ object FrmPressTest: TFrmPressTest
       Width = 520
       Height = 452
       Align = alClient
-      View.FoldIndicator = True
-      View.ShowLineNumber = True
+      Marker.Margins = [smLineNumber, smSymbol, smFold]
+      Text.UseTab = False
       View.StyleFile = 'embed:DefaultStyle'
       View.TabSize = 4
-      Text.UseTab = False
     end
   end
   object PnlControls: TDUIPanel
