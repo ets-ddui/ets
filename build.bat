@@ -63,6 +63,7 @@ rem 3.2 VC
 
 rem 4.0 ¿½±´ÒÀÀµÎÄ¼þ
 xcopy ".\Bin" "%BinDir%\ETS" /S /Y
+xcopy ".\Delphi\DDUI\ThirdParty\Scintilla\Style\Black.json" "%BinDir%\ETS\Config\Style.json" /S /Y
 
 pushd "%BinDir%"
 xcopy "%BDS%\bin\dbxmss30.dll"                      ETS\Dll\Common\ /Y /I

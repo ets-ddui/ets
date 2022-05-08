@@ -64,6 +64,17 @@ begin
 
   AcceptDropFiles := True;
 
+  if not Assigned(FFrame) then
+  begin
+    FFrame := TDUIPanel.Create(Self);
+    FFrame.Visible := False;
+    FFrame.Align := alBottom;
+    FFrame.DUIParent := Self;
+  end;
+
+  if FileExists('Config\Style.json') then
+    EdScript.View.StyleFile := 'Config\Style.json';
+
   DoControlButtonClick(BtnRefresh);
   DoControlButtonClick(BtnNew);
 end;
@@ -79,6 +90,7 @@ begin
 
   PnlTitle.Caption := tn.Cells[1];
   EdScript.Text.LoadFromFile(tn.Cells[1]);
+  FFrame.Visible := False;
 end;
 
 procedure TFrmPressTest.DoControlButtonClick(ASender: TObject);
@@ -119,6 +131,8 @@ procedure TFrmPressTest.DoControlButtonClick(ASender: TObject);
   end;
 
   procedure doRun;
+  var
+    i: Integer;
   begin
     if not VarIsNull(FThreadContainer) then
     begin
@@ -130,11 +144,8 @@ procedure TFrmPressTest.DoControlButtonClick(ASender: TObject);
     BtnStart.Enabled := False;
     BtnStop.Enabled := True;
     try
-      FreeAndNil(FFrame);
-      FFrame := TDUIPanel.Create(Self);
-      FFrame.Visible := False;
-      FFrame.Align := alBottom;
-      FFrame.DUIParent := Self;
+      for i := FFrame.ControlCount - 1 downto 0 do
+        FFrame.Controls[i].Free;
 
       FThreadContainer := GetScriptThreadContainer;
       FThreadContainer.Restart;
@@ -177,6 +188,7 @@ begin
   begin
     PnlTitle.Caption := AFileName;
     EdScript.Text.LoadFromFile(AFileName);
+    FFrame.Visible := False;
   end;
 end;
 
